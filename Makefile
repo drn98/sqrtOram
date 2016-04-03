@@ -2,25 +2,26 @@ OBLIVCC = $(OBLIVC_PATH)/bin/oblivcc
 OBLIVCH = $(OBLIVC_PATH)/src/ext/oblivc
 OBLIVCA = $(OBLIVC_PATH)/_build/libobliv.a
 
+.PHONY: all clean
 all: build/liboram.a
 
+clean:
+	rm -rf build
+
+# Gather up all files in src/ and pack them into liboram.a
 LIBORAM_OBJS=$(addprefix build/,\
 	       $(patsubst %.c,%.o,$(wildcard src/*.c)) \
 	       $(patsubst %.oc,%.oo,$(wildcard src/*.oc)))
 build/liboram.a: $(LIBORAM_OBJS)
 	ar -rc $@ $^
 
-# Generate build directories
+# Create directories
+.PHONY: builddirs
 BUILD_SUBDIRS=$(addprefix build/,src test bench)
 $(BUILD_SUBDIRS):
 	mkdir -p $(BUILD_SUBDIRS)
 
-.PHONY: builddirs
 builddirs: $(BUILD_SUBDIRS)
-
-.PHONY: clean
-clean:
-	rm -rf build
 
 # Include generated dependencies
 -include $(patsubst %.oo,%.od,$(OBJS:.o=.d))
