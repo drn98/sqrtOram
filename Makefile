@@ -1,8 +1,10 @@
+SHELL = /bin/bash
 OBLIVCC = $(OBLIVC_PATH)/bin/oblivcc
 OBLIVCH = $(OBLIVC_PATH)/src/ext/oblivc
 OBLIVCA = $(OBLIVC_PATH)/_build/libobliv.a
 
-SRC_DIRS = oram
+SRC_DIRS = oram util
+INCLUDE_FLAGS = $(addprefix -I ,$(SRC_DIRS) $(OBLIVCH))
 
 .PHONY: all clean
 all: build/liboram.a
@@ -28,11 +30,25 @@ builddirs: $(BUILD_SUBDIRS)
 # Include generated dependencies
 -include $(patsubst %.oo,%.od,$(OBJS:.o=.d))
 
-build/%.o: %.c builddirs
-	gcc -c $(CFLAGS) $*.c -o $@ -I $(OBLIVCH) $(addprefix -I ,$(SRC_DIRS))
-	cpp -MM $(CFLAGS) $*.c -I $(OBLIVCH) -MT $@ > build/$*.d
+build/%.o: %.c | builddirs
+	gcc -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
+	cpp -MM $(CFLAGS) $*.c $(INCLUDE_FLAGS) -MT $@ > build/$*.d
 
-build/%.oo: %.oc builddirs
-	$(OBLIVCC) -c $(CFLAGS) $*.oc $(addprefix -I ,$(SRC_DIRS)) -o $@
-	cpp -MM $(CFLAGS) $*.oc -MT $@ > build/$*.od
+build/%.oo: %.oc | builddirs
+	$(OBLIVCC) -c $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -o $@
+	cpp -MM $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -MT $@ > build/$*.od
 
+# Create dependencies
+# Some test/ files have only .c files, others have .c and .oc with the same name
+build/Makefile-testdeps: $(wildcard test/*.c test/*.oc) | builddirs
+	> $@
+	for f in `ls test/*.c`; do \
+	  if [ -a $${f/%.c/.oc} ]; then \
+	    echo build/$${f/%.c/}: build/$${f/%.c/.oo} >> $@; \
+	  fi; \
+	done
+
+-include build/Makefile-testdeps
+# Build test executables
+build/test/%: build/test/%.o build/util/util.o build/liboram.a
+	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild

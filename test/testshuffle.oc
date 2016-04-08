@@ -1,0 +1,91 @@
+#include<obliv.oh>
+#include"shuffle.oh"
+#include<stdio.h>
+#ifndef MUX_BATCH
+#define MUX_BATCH n
+#endif
+
+#ifdef PERM_STORE_YAO
+const bool permYao = true;
+#else
+const bool permYao = false;
+#endif
+
+#if 1
+  typedef int dint;
+  typedef OcSharedInt OcSharedDInt;
+  void (*ocFeedSharedDIntN)(OcSharedDInt dest[],const dint src[],
+                      size_t n,int party) = ocFeedSharedIntN;
+  void (*ocRevealSharedDIntN)(dint dest[],
+      const OcSharedDInt src[], size_t n,int party) = ocRevealSharedIntN;
+  void (*feedOblivDIntArray)(obliv dint[],dint[],size_t,int) 
+      = feedOblivIntArray;
+  OcCopy* ocCopyDInt = &ocCopyInt;
+#else
+  typedef long long dint;
+  typedef OcSharedLLong OcSharedDInt;
+  void (*ocFeedSharedDIntN)(OcSharedDInt dest[],const dint src[],
+                      size_t n,int party) = ocFeedSharedLLongN;
+  void (*ocRevealSharedDIntN)(dint dest[],
+      const OcSharedDInt src[], size_t n,int party) = ocRevealSharedLLongN;
+  void (*feedOblivDIntArray)(obliv dint[],dint[],size_t,int)
+      = feedOblivLLongArray;
+  OcCopy* ocCopyDInt = &ocCopyLLong;
+#endif
+
+void revealPerm(ProtocolDesc* pd, int plain[], void* cipher,size_t n)
+{
+#ifdef PERM_STORE_YAO
+  for(int i=0;i<n;++i) revealOblivInt(plain+i,((obliv int*)cipher)[i],1);
+  for(int i=0;i<n;++i) revealOblivInt(plain+i,((obliv int*)cipher)[i],2);
+#else
+  ocRevealSharedIntN(plain,cipher,n,0);
+#endif
+}
+void testShuffle(void* arg)
+{
+  ProtocolDesc* pd = ocCurrentProto();
+  int i,n = *(int*)arg;
+  dint *plainArr = malloc(n*sizeof(dint ));
+  int *plainPerm = malloc(n*sizeof(int));
+  for(i=0;i<n;++i) plainArr[i]=i+5;
+
+#if defined USE_SHARES || !(defined PERM_STORE_YAO)
+  ocShareInit(pd);
+#endif
+#ifdef USE_SHARES
+  OcSharedDInt *arr = malloc(n*sizeof(OcSharedDInt));
+  void *perm = malloc(n*(permYao?sizeof(obliv int):sizeof(OcSharedInt)));
+
+  ocFeedSharedDIntN(arr,plainArr,n,1);
+
+  OcCopy* cpy = ocShareCopyNew(pd,MUX_BATCH,sizeof(OcSharedDInt));
+  ocShuffleData(cpy,arr,n,perm,permYao);
+  ocRevealSharedDIntN(plainArr,arr,n,0);
+  revealPerm(pd,plainPerm,perm,n);
+  ocCopyRelease(cpy);
+
+#else
+  obliv dint *arr = calloc(n,sizeof(obliv dint));
+  void *perm = calloc(n,sizeof(obliv int));
+  feedOblivDIntArray(arr,plainArr,n,1);
+  ocShuffleData(ocCopyDInt,arr,n,perm,permYao);
+  for(i=0;i<n;++i) revealOblivInt(plainArr+i,arr[i],1);
+  for(i=0;i<n;++i) revealOblivInt(plainArr+i,arr[i],2);
+  revealPerm(pd,plainPerm,perm,n);
+#endif
+
+  for(i=0;i<n;++i) if(plainArr[plainPerm[i]]!=i+5) break;
+  *(int*)arg = (i==n);
+
+#if defined USE_SHARES || !(defined PERM_STORE_YAO)
+  ocShareCleanup(pd);
+#endif
+  free(perm);
+  free(arr);
+  free(plainPerm);
+  free(plainArr);
+
+  size_t tcp2PBytesSent(ProtocolDesc* pd) ;
+  printf("Yao gate count: %d\n",yaoGateCount());
+}
