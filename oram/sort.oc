@@ -1,0 +1,31 @@
+#include"sort.oh"
+
+/* Definition for:
+   ocCmpBool, ocCmpShort, ocCmpInt, ocCmpLong, ocCmpLLong, ocCmpSizeT*/
+#define DEFINE_OC_CMP(Type,type) \
+  obliv bool ocCmpLtt##Type \
+    (OcCmp* cmp,const void* va,const void* vb, \
+    obliv bool chain) obliv \
+  { \
+    ~obliv() \
+    { obliv type x = *(const obliv type*)va; \
+      obliv bool res; \
+      /* Obliv-C Magic built-in */ \
+      __obliv_c__setBitsSub(&x,&res,&x,vb,&chain,ocBitSize(obliv type)); \
+      return res; \
+    } \
+  } \
+  obliv bool ocCmpEq##Type (OcCmp* cmp, const void* va, const void* vb) obliv \
+    { return *(const obliv type*)va == *(const obliv type*)vb; } \
+  OcCmp ocCmp##Type = \
+  { .cpy = &ocCopy##Type, \
+    .lessThanTie = ocCmpLtt##Type, \
+    .equal = ocCmpEq##Type \
+  };
+
+DEFINE_OC_CMP(Bool,bool) 
+DEFINE_OC_CMP(Short,short)
+DEFINE_OC_CMP(Int,int)  
+DEFINE_OC_CMP(Long,long)  
+DEFINE_OC_CMP(LLong,long)  
+DEFINE_OC_CMP(SizeT,size_t)  

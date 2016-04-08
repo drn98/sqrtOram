@@ -1,0 +1,42 @@
+#include<stdlib.h>
+#include<obliv.oh>
+#include"shuffle.oh"
+
+#define MAGIC 92
+
+void revealOblivIntArray(int dest[],const obliv int src[],size_t n)
+{
+  int i;
+  for(i=0;i<n;++i) revealOblivInt(dest+i,src[i],1);
+  for(i=0;i<n;++i) revealOblivInt(dest+i,src[i],2);
+}
+
+bool revealAndCheck(const obliv int odata[],const obliv int operm[],size_t n)
+{
+  int* data = malloc(n*sizeof(int));
+  int* perm = malloc(n*sizeof(int));
+  int i;
+  bool result=true;
+  revealOblivIntArray(data,odata,n);
+  revealOblivIntArray(perm,operm,n);
+  for(i=0;i<n;++i) if(data[perm[i]]!=i+MAGIC) { result=false; break; }
+  free(data); free(perm);
+  return result;
+}
+
+void testUnapply(void* arg)
+{
+  int n = *(int*)arg;
+  int i;
+  OcPermNetwork w = ocPermNetworkRandom(n);
+  obliv int *data = calloc(n,sizeof(obliv int));
+  obliv int *perm = calloc(n,sizeof(obliv int));
+  for(i=0;i<n;++i) data[i]=i+MAGIC;
+  ocPermNetworkUnapply(&w,&ocCopyInt,data);
+  ocPermNetworkPerm(&w,perm);
+  bool res = revealAndCheck(data,perm,n);
+  *(int*)arg=res;
+  free(data);
+  free(perm);
+  ocPermNetworkCleanup(&w);
+}

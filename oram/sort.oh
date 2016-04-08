@@ -1,0 +1,42 @@
+#pragma once
+#include"sort.h"
+#include"copy.oh"
+
+typedef frozen struct OcCmp OcCmp;
+
+struct OcCmp
+{ OcCopy* cpy;
+  obliv bool (*lessThanTie)(OcCmp*,const void*, const void*, obliv bool) obliv; 
+  obliv bool (*equal)(OcCmp*,const void*, const void*) obliv;
+};
+
+// Less than comparison. Takes in custom comparator.
+static inline obliv bool
+ocLessThan(OcCmp* cmp, const void* a, const void* b) obliv
+  { return cmp->lessThanTie(cmp,a,b,false); }
+static inline obliv bool
+ocEqual(OcCmp* cmp, const void* a, const void* b) obliv
+  { return cmp->equal(cmp,a,b); }
+
+/*
+   Less than comparison with specified equality result.
+   In effect, this can be either a "less than" or "less than or equal",
+   depending on the value of 'eq'. For obliv comparisons, it is useful
+   for cheaply tying multiple comparisons together. For example, if we are
+   trying to compare structs such as 
+     struct Triple { obliv int x,y,z; } p,q;
+   We can compare such as this:
+     obliv bool chain = false;
+     chain = ocLessThanTie(cmpInt,p.z,q.z,chain);
+     chain = ocLessThanTie(cmpInt,p.y,q.y,chain);
+     chain = ocLessThanTie(cmpInt,p.x,q.x,chain);
+     return chain;
+   This will perform comparison based on .x, break ties with .y, and use .z as
+   the final tiebreaker.  
+   */
+static inline obliv bool
+ocLessThanTie(OcCmp* cmp, const void* a, const void* b, obliv bool eq) obliv
+{ return cmp->lessThanTie(cmp,a,b,eq); }
+
+
+extern OcCmp ocCmpBool, ocCmpShort, ocCmpInt, ocCmmpLong, ocCmpLLong, ocCmpSizeT;

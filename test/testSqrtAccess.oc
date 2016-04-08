@@ -1,0 +1,26 @@
+#include<obliv.oh>
+#include"testSqrtAccess.h"
+#include"sqrtoram.oh"
+#include"copy.oh"
+
+void testSqrtAccess(void* vargs)
+{
+  TestSqrtAccessIO* args = vargs;
+  int size = ocBroadcastInt(args->size,2);
+  int n = ocBroadcastInt(args->size,1);
+  obliv int* content = calloc(n,sizeof(obliv int));
+  obliv int* indices = calloc(size,sizeof(obliv int));
+  obliv int output;
+  feedOblivIntArray(content,args->content,n,1);
+  feedOblivIntArray(indices,args->indices,size,2);
+  OcSqrtOram* ram = ocSqrtOramNew(&ocCopyInt,content,n);
+  args->outputs = malloc(size*sizeof(int));
+  for(int i=0;i<size;++i) 
+  { ocSqrtOramRead(ram,indices[i],&output);
+    revealOblivInt(args->outputs+i,output,0);
+  }
+  ocSqrtOramRelease(ram);
+  free(indices);
+  free(content);
+  args->size=size; // for party 1
+}
