@@ -51,4 +51,4 @@ build/Makefile-testdeps: $(wildcard test/*.c test/*.oc) | builddirs
 -include build/Makefile-testdeps
 # Build test executables
 build/test/%: build/test/%.o build/util/util.o build/liboram.a
-	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild
+	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
