@@ -6,8 +6,8 @@
 
 void showUsage(const char* exec)
 {
-  fprintf(stderr,"Usage: %s -- <port> <indices...>\n"
-                 "   or: %s <remote-server> <port> <initial data>\n",exec,exec);
+  fprintf(stderr,"Usage: %s -- <port> <initial data>\n"
+                 "   or: %s <remote-server> <port> <indices...>\n",exec,exec);
   exit(1);
 }
 int main(int argc,char* argv[])
