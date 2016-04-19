@@ -1,0 +1,54 @@
+#include<copy.oh>
+
+// ------------------ Batcher sorting -----------------------------------------
+
+void batcherSwap(unsigned char* data,size_t n,size_t w,
+                 void (*cmpswap)(void*,void*,void*),void* arg)
+{
+  size_t i;
+  for(i=0;i+1<n;i+=2) cmpswap(data+w*i,data+w*(i+1),arg);
+}
+void batcherMerge(unsigned char* data,size_t n1,size_t n2,size_t w,
+                  void (*cmpswap)(void*,void*,void*),void* arg)
+{
+  if(n1+n2<=1) return;
+  int odd = n1%2;
+  batcherMerge(data,(n1+1)/2,(n2+!odd)/2,w*2,cmpswap,arg);
+  batcherMerge(data+w,n1/2,  (n2+odd)/2,  w*2,cmpswap,arg);
+  batcherSwap(data+w*!odd,n1+n2-!odd,w,cmpswap,arg);
+}
+
+// w is width in bits (bytes?) XXX
+void batcherSort(void* data,size_t n,size_t w,
+                 void (*cmpswap)(void*,void*,void*),void* arg)
+{
+  if(n<=1) return;
+  batcherSort(data,n/2,w,cmpswap,arg);
+  batcherSort((unsigned char*)data+w*(n/2),(n+1)/2,w,cmpswap,arg);
+  batcherMerge(data,n/2,(n+1)/2,w,cmpswap,arg);
+}
+
+// --------------------- Lazy filter ------------------------------------------
+
+typedef struct
+{ obliv int *hole;
+  obliv int *index;
+  obliv bool *isHole;
+  obliv bool *isIndex;
+  void* data;
+  int n,t;
+  OcCopy* cpy;
+} LazyFilter;
+
+
+// Happens after every erase push
+void ocLazyFilterShift(LazyFilter* lzf)
+{
+  int t = lzf->t;
+  int k = (t-(t&(t-1))); // number of elements to shift
+  // assume isIndex[k..2k) are true, isHole[k..2k) are false
+  // TODO
+  // Merge by index (sorted, but porous warning)
+  // Scan for repeats
+  // filter x 2 to extract them back
+}

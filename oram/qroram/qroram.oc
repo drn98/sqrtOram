@@ -1,0 +1,131 @@
+// Implements a silly 4-block ORAM that improves over linear scan by at most
+// 10%. Used only as a stepping-stone, till we implement a full-blown n-block
+// one, which has more moving parts.
+#include<assert.h>
+#include<stdlib.h>
+#include<bcrandom.h>
+#include<obliv.oh>
+#include"qroram.oh"
+#include"shuffle.oh"
+
+struct OcFourBlock
+{
+  OcCopy* cpy;
+  obliv int *shuffi,*stashi;
+  void* shuff;
+  void* stash;
+  obliv int* pos;
+  obliv bool* used;
+  bool* usedShuff;
+  int time,period;
+  BCipherRandomGen* gen;
+};
+
+static void* element(OcCopy* cpy,void* arr,int x) obliv
+  { return x*cpy->eltsize+(char*)arr; }
+
+// Shuffles stash and stores it into "shuff". Stash gets "emptied"
+// By resetting 'time' to 0, and used to all false. Finally,
+// 'pos' gets initialized according to the shuffle permutation.
+static void ocFourBlockShuffle(OcFourBlock* ram)
+{
+  int i,j=0;
+  // Copy stash elements into the empty slots of shuff
+  for(i=0;i<4;++i) if(ram->usedShuff[i])
+  { ram->shuffi[i]=ram->stashi[j];
+    ocCopy(ram->cpy,element(ram->cpy,ram->shuff,i),
+                    element(ram->cpy,ram->stash,j));
+    j++;
+  }
+  // Shuffle data
+  OcPermNetwork w = ocPermNetworkRandom(4);
+  ocPermNetworkHalfApply(&w,ram->cpy,ram->shuff);
+  ocPermNetworkHalfApply(&w,&ocCopyInt,ram->shuffi);
+  ocPermInverseAssumingPerm(&w,ram->pos,ram->shuffi);
+  ocPermNetworkCleanup(&w);
+
+  for(i=0;i<4;++i) 
+  { ram->used[i]=false;
+    ram->usedShuff[i]=false;
+    ram->pos[i]&=3;
+  }
+  ram->time=0;
+}
+
+OcFourBlock* ocFourBlockNew(OcCopy* cpy,void* data)
+{
+  assert(*((char*)ocCurrentProto()->extra)==OC_PD_TYPE_YAO);
+  OcFourBlock* ram = malloc(sizeof(*ram));
+  ram->cpy=cpy;
+  ram->shuff = malloc(cpy->eltsize*4);
+  ocCopyN(cpy,ram->shuff,data,4);
+  ram->stash = malloc(cpy->eltsize*4);
+  ram->pos = calloc(4,sizeof(obliv int));
+  ram->used = calloc(4,sizeof(obliv bool));
+  ram->usedShuff = calloc(4,sizeof(bool));
+  ram->shuffi = calloc(4,sizeof(obliv int));
+  ram->stashi = calloc(4,sizeof(obliv int));
+  for(int i=0;i<4;++i) ram->shuffi[i]=ram->stashi[i]=i;
+  ram->gen=newBCipherRandomGen();
+  ram->period=3;
+  ram->time=0;
+  ocFourBlockShuffle(ram);
+  return ram;
+}
+void ocFourBlockRelease(OcFourBlock* ram)
+{
+  free(ram->usedShuff);
+  free(ram->used);
+  free(ram->pos);
+  free(ram->stash);
+  free(ram->shuff);
+  free(ram->stashi); free(ram->shuffi);
+  releaseBCipherRandomGen(ram->gen);
+  free(ram);
+}
+
+void ocFourBlockAccess(OcFourBlock* ram,obliv int index,bool doRead,void* data)
+{
+  int i,ppos;
+  obliv int unusedIndex,unusedPos,itPos;
+  obliv bool itUsed;
+  index&=3;
+  // Pick an element to read out
+  for(i=0;i<4;++i)
+  { obliv if(i==index)
+    { itUsed=ram->used[i];
+      itPos=ram->pos[i];
+    }
+    obliv if(!ram->used[i]) 
+    { unusedPos=ram->pos[i];
+      unusedIndex=i;
+    }
+  }
+  obliv if(!itUsed) 
+  { unusedPos=itPos;
+    unusedIndex=index;
+  }
+  revealOblivInt(&ppos,unusedPos,0);
+  ram->usedShuff[ppos]=true;
+  ocCopy(ram->cpy,element(ram->cpy,ram->stash,ram->time),
+                  element(ram->cpy,ram->shuff,ppos));
+  ram->stashi[ram->time]=ram->shuffi[ppos];
+  // Update index
+  for(i=0;i<4;++i)
+  { obliv if(i==unusedIndex)
+    { ram->used[i]=true;
+      ram->pos[i]=ram->time;
+    }
+  }
+  ram->time++;
+  for(i=0;i<ram->time;++i) obliv if(ram->stashi[i]==index)
+  { if(doRead) ocCopy(ram->cpy,data,element(ram->cpy,ram->stash,i));
+    else ocCopy(ram->cpy,element(ram->cpy,ram->stash,i),data);
+  }
+  if(ram->time==3) ocFourBlockShuffle(ram);
+}
+
+void ocFourBlockRead(OcFourBlock* ram,obliv int index,void* data)
+  { ocFourBlockAccess(ram,index,true,data); }
+void ocFourBlockWrite(OcFourBlock* ram,obliv int index,const void* data)
+  { ocFourBlockAccess(ram,index,false,data); }

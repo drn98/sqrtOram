@@ -1,0 +1,34 @@
+#include"testPropagate.h"
+#include"eraseSet.oh"
+#include<obliv.oh>
+
+void testPropagate(void* vargs)
+{
+  PropagateArgs* args = vargs;
+  size_t n = ocBroadcastInt(args->n,1), 
+         outBlank = ocBroadcastInt(args->outBlank,2),
+         outData = ocBroadcastInt(args->outData,2);
+  obliv int *data = calloc(n,sizeof(obliv int));
+  obliv bool *isdata  = calloc(n,sizeof(obliv bool)),
+             *iserase = calloc(n,sizeof(obliv bool));
+  feedOblivIntArray(data,args->data,n,1);
+  feedOblivBoolArray(isdata,args->isdata,n,1);
+  feedOblivBoolArray(iserase,args->iserase,n,1);
+  eraseSetPropagate(&ocCmpInt,data,n,isdata,iserase,outData,outBlank);
+  if(ocCurrentParty()==2) 
+  { args->data = malloc(n*sizeof(int));
+    args->isdata = malloc(n*sizeof(bool));
+    args->iserase = malloc(n*sizeof(bool));
+  }
+  for(size_t i=0;i<n;++i)
+  { revealOblivInt(args->data+i,data[i],0);
+    revealOblivBool(args->isdata+i,isdata[i],0);
+    revealOblivBool(args->iserase+i,iserase[i],0);
+  }
+  args->n=n;
+  args->outBlank=outBlank;
+  args->outData=outData;
+  free(data);
+  free(isdata);
+  free(iserase);
+}

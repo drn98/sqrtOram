@@ -84,9 +84,9 @@ build/%.oo: %.oc | builddirs
 
 # Create dependencies
 # Some test/ files have only .c files, others have .c and .oc with the same name
-build/Makefile-testdeps: $(wildcard test/*.c test/*.oc) | builddirs
+build/Makefile-testdeps: $(wildcard test/*.c test/*.oc bench/*.c bench/*.oc) | builddirs
 	> $@
-	for f in `ls test/*.c`; do \
+	for f in `ls test/*.c` `ls bench/*.c`; do \
 	  if [ -a $${f/%.c/.oc} ]; then \
 	    echo build/$${f/%.c/}: build/$${f/%.c/.oo} >> $@; \
 	  fi; \
@@ -95,4 +95,7 @@ build/Makefile-testdeps: $(wildcard test/*.c test/*.oc) | builddirs
 -include build/Makefile-testdeps
 # Build test executables
 build/test/%: build/test/%.o build/util/util.o build/liboram.a
+	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
+
+build/bench/%: build/bench/%.o build/util/util.o build/liboram.a
 	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm

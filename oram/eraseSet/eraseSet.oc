@@ -1,0 +1,102 @@
+#include"eraseSet.oh"
+#include"copy.oh"
+
+#include<obliv.oh>
+#include<stdio.h>
+
+typedef frozen struct 
+{ OcCmp *cmp;
+  obliv bool *iserase, *isdata;
+  void *data, *scratch;
+} PropagateArg;
+
+#define DATA(i) (arg->cmp->cpy->eltsize*(i)+arg->data)
+void swapDataFlags(PropagateArg* arg,size_t i,size_t j) obliv
+{
+  obliv bool xx;
+  ocSwap(&ocCopyBool,  &arg->isdata[i], &arg->isdata[j], &xx);
+  ocSwap(&ocCopyBool,  &arg->iserase[i],&arg->iserase[j],&xx);
+  ocSwap(arg->cmp->cpy,DATA(i),DATA(j),arg->scratch);
+}
+void sortByFlagsCmp(void* varg,size_t i,size_t j)
+{
+  PropagateArg *arg = varg;
+  obliv bool res = (!arg->iserase[i] & arg->iserase[j]);
+  res = ocLessThanTie(&ocCmpBool,&arg->isdata[i],&arg->isdata[j],res);
+  obliv if(!res) swapDataFlags(arg,i,j);
+}
+// This might go better if we had isblank rather than iserase. TODO optimize
+void sortAugmentedCmp(void* varg,size_t i,size_t j)
+{
+  PropagateArg *arg = varg;
+  obliv bool nonblanki = (arg->isdata[i]|arg->iserase[i]);
+  obliv bool nonblankj = (arg->isdata[j]|arg->iserase[j]);
+  // Sort by nonblank, data, isdata
+  obliv bool res = (!arg->isdata[i]&arg->isdata[j]);
+  res = ocLessThanTie(arg->cmp,DATA(i),DATA(j),res);
+  res = ocLessThanTie(&ocCmpBool,&nonblanki,&nonblankj,res);
+  obliv if(!res) swapDataFlags(arg,i,j);
+}
+/*
+   Resolves erase commands and propagates unerased elements to the head.
+
+   Transforms an array sort of like this:
+       x!x--!xxx!---xxx!    -->    ----xxxx -----!!xx
+   Conceptually, we have an array of n elements. Some of them are blank slots,
+   some are data items (isdata[i]==true), while the rest are erase commands 
+   (iserase[i]==true). In the end, we want to have a head with a certain
+   number of blank elements, and a certain number of data elements. All erase
+   commands that can be resolved within this array gets resolved here.
+
+   Caller should make sure that the array actually has the given number of
+   head blank and data elements, specially after internal erases have been
+   resolved. isdata[i] and iserase[i] should not both be true for any 
+   given i. Moreover, propagate() does not support duplicate elements
+   in non-blank sorts ((isdata[i],data[i]) is unique).
+
+   Params: 
+     cmp     - object defining element properties
+     data    - array of n elements, each of size cpy->eltsize bytes
+     n       - number of elements in array
+     isdata  - array of n bools. isdata[i] == true implies element(cpy,data,i)
+               is a valid data item
+     iserase - array of n bools. iserase[i] == true implies element(cpy,data,i)
+               specifies an element to be erased.
+     head_data_out  - number of data elements in the output 'head'
+     head_blank_out - number of empty slots in the output 'head'
+   */
+void
+eraseSetPropagate(OcCmp* cmp,
+          char* data, size_t n,
+          obliv bool* isdata, obliv bool* iserase, 
+          size_t head_data_out, size_t head_blank_out)
+{
+  PropagateArg arg_ = 
+    { .cmp = cmp, .isdata = isdata, .iserase = iserase, 
+      .data = data, .scratch = calloc(1,cmp->cpy->eltsize)
+    };
+  PropagateArg *arg=&arg_;
+  size_t i;
+  // We might be able to do tons of merge, instead of a sort
+  batcherSort(arg,0,n,sortAugmentedCmp);
+  for(i=1;i<n;++i) 
+  { obliv bool eq = ocEqual(cmp,DATA(i-1),DATA(i));
+    obliv if(iserase[i-1] & isdata[i] & eq) iserase[i-1] = isdata[i] = false;
+  }
+  batcherSort(arg,0,n,sortByFlagsCmp); // ---!!!xxx
+  const size_t off = head_blank_out;
+  for(i=0;i<head_data_out;++i) 
+  { isdata[n-i-1]=isdata[i+off]; isdata[i+off]=true;
+    iserase[n-i-1]=iserase[i+off]; iserase[i+off]=false;
+    ocSwap(cmp->cpy,DATA(i+off),DATA(n-i-1),arg->scratch);
+  }
+  free(arg->scratch);
+}
+#undef DATA
+
+// Either we should assume headTotal = head0*powerOfTwo
+// Or, we should have well-defined semantics for other cases TODO
+static void sift(OcCopy* cpy,void* data,size_t headTotal,size_t head0)
+{
+
+}

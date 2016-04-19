@@ -1,0 +1,49 @@
+#include<obliv.oh>
+#include<obliv_common.h>
+#include"copy.oh"
+#include<stdlib.h>
+#include"timecopy.h"
+#include"util.h"
+
+#include<stdio.h>
+#define HERE printf("Party %d: %s:%d\n",ocCurrentParty(),__FILE__,__LINE__)
+void timeCopy(void* vargs)
+{
+  TimeCopyIO* args = vargs;
+  int r,i, n = args->batchsz;
+  obliv int* data0 = calloc(n,sizeof(obliv int));
+  obliv int* data1 = calloc(n,sizeof(obliv int));
+  obliv bool* sel = calloc(n,sizeof(obliv bool));
+  int* zeroes = calloc(n,sizeof(int));
+
+  double start = wallClock();
+  feedOblivBoolArray(sel,(bool*)zeroes,n,2);
+  int me = ocCurrentParty();
+  printf("Feed inputs done: %lf\n",wallClock()-start);
+
+  if(args->useShare)
+  { ProtocolDesc* pd = ocCurrentProto();
+    ocShareInit(pd);
+    OcCopy* cpy = ocShareCopyNew(pd,n,sizeof(OcSharedInt));
+    OcSharedInt* sh0 = calloc(n,sizeof(OcSharedInt));
+    OcSharedInt* sh1 = calloc(n,sizeof(OcSharedInt));
+    printf("Memallocs done: %lf\n",wallClock()-start);
+    ocFeedSharedIntN(sh0,zeroes,n,1);
+    ocFeedSharedIntN(sh1,zeroes,n,1);
+    printf("Setups done: %lf\n",wallClock()-start);
+    for(r=0;r<args->rounds;++r) ocCopyCondN(cpy,sh0,sh1,sel,n);
+    printf("Main loop done: %lf\n",wallClock()-start);
+    free(sh0); free(sh1);
+    ocCopyRelease(cpy);
+    ocShareCleanup(pd);
+    printf("All done: %lf\n",wallClock()-start);
+  }else
+  { OcCopy* cpy = &ocCopyInt;
+    // Feed in lots of zeroes
+    feedOblivIntArray(data0,zeroes,n,1);
+    feedOblivIntArray(data1,zeroes,n,1);
+    for(r=0;r<args->rounds;++r) ocCopyCondN(cpy,data0,data1,sel,n);
+  }
+
+  free(zeroes); free(sel); free(data0); free(data1);
+}

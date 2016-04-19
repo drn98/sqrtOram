@@ -1,0 +1,19 @@
+#pragma once
+#include"sort.oh"
+
+frozen typedef struct EraseSet EraseSet;
+
+// Stores things that can be copied and compared
+// Comparison allows polylog search
+
+EraseSet* eraseSetNew(OcCmp* cmp,OcCopy* cpy,const char* data,size_t n);
+void eraseSetRelease(EraseSet* s);
+const char* eraseSetTop(EraseSet* s);
+void eraseSetErase(EraseSet* s,const char* x);
+
+// Internal functions only used in debugging
+void
+eraseSetPropagate(OcCmp* cmp,
+          char* data, size_t n,
+          obliv bool* isdata, obliv bool* iserase, 
+          size_t head_data_out, size_t head_blank_out);

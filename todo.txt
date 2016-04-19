@@ -2,9 +2,3 @@ Move files
 ==========
 
 bench* --> bench/
-eraseSet.{oc,oh} lazyFilter --> todo
-qroram --> qroram/
-testevalhalf testgenhalf --> Obliv-C source
-testPropagate --> goes into eraseSet
-testQrShuffleTime testqrtable --> qroram
-timecopy --> bench

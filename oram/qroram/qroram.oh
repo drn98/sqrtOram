@@ -1,0 +1,9 @@
+#pragma once
+#include"copy.oh"
+
+typedef struct OcFourBlock OcFourBlock;
+
+OcFourBlock* ocFourBlockNew(OcCopy* cpy,void * data);
+void ocFourBlockRelease(OcFourBlock* ram);
+void ocFourBlockRead(OcFourBlock* ram,obliv int index,void* data);
+void ocFourBlockWrite(OcFourBlock* ram,obliv int index,const void* data);
