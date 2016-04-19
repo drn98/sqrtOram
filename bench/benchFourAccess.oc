@@ -1,0 +1,47 @@
+// This file is no longer used. It's an early draft of sqrtOram.
+// In order to make it work, testFourAccess.h and .oc will have to be
+// moved to util and then linked in with this.
+#include<obliv.oh>
+#include"testFourAccess.h"
+#include"qroram.oh"
+#include"copy.oh"
+#include<obliv.h>
+#include<stdio.h>
+
+#define REP 9
+
+void testFourAccess(void* vargs)
+{
+  TestFourAccessIO* args = vargs;
+  int pcontent[4][REP]={};
+  obliv int content[4][REP];
+  int size = ocBroadcastInt(args->size,2);
+  obliv int* indices = calloc(size,sizeof(obliv int));
+  obliv int output[REP];
+  int i,j;
+  for(i=0;i<4;++i) pcontent[i][0]=args->content[i];
+  OcCopy cpy = ocCopyIntN(REP);
+  feedOblivIntArray(content,(void*)pcontent,4*REP,1);
+  feedOblivIntArray(indices,args->indices,size,2);
+  ProtocolDesc* pd = ocCurrentProto();
+  int start = tcp2PBytesSent(pd),mid,end;
+  OcFourBlock* ram = ocFourBlockNew(&cpy,content);
+  args->outputs = malloc(size*sizeof(int));
+  for(i=0;i<size;++i) 
+  { ocFourBlockRead(ram,indices[i],&output);
+    revealOblivInt(args->outputs+i,output[0],0);
+  }
+  mid = tcp2PBytesSent(pd);
+  printf("ORAM bytes sent: %d\n",mid-start);
+  for(i=0;i<size;++i)
+  { for(j=0;j<4;++j) obliv if(j==(indices[i]&3))
+      for(int k=0;k<REP;++k)
+        output[k]=content[j][k];
+    revealOblivInt(args->outputs+i,output[0],0);
+  }
+  end = tcp2PBytesSent(pd);
+  printf("LinearScan bytes sent: %d\n",end-mid);
+  ocFourBlockRelease(ram);
+  free(indices);
+  args->size=size; // for party 1
+}

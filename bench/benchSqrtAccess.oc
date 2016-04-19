@@ -1,0 +1,55 @@
+#include<obliv.oh>
+#include"benchSqrtAccess.h"
+#include"sqrtoram.oh"
+#include"copy.oh"
+#include"decoder.oh"
+#include<obliv.h>
+#include<stdio.h>
+#include"util.h"
+
+void testSqrtAccess(void* vargs)
+{
+  TestSqrtAccessIO* args = vargs;
+  int size = ocBroadcastInt(args->indexn,2);
+  int n = ocBroadcastInt(args->size,1);
+  const int rep = ocBroadcastInt(args->rep,1);
+  int* pcontent = calloc(n*rep,sizeof(int));
+  obliv int* content = calloc(n*rep,sizeof(obliv int));
+  obliv int* indices = calloc(size,sizeof(obliv int));
+  obliv int *output = calloc(rep,sizeof(obliv int));
+  int i,j;
+  if(ocCurrentParty()==1) for(i=0;i<n;++i) pcontent[i*rep]=args->content[i];
+  OcCopy cpy = ocCopyIntN(rep);
+  feedOblivIntArray(content,pcontent,n*rep,1);
+  feedOblivIntArray(indices,args->indices,size,2);
+  ProtocolDesc* pd = ocCurrentProto();
+  size_t start = tcp2PBytesSent(pd),mid,end;
+  double startt = wallClock(), midt, endt;
+  OcSqrtOram* ram = ocSqrtOramNew(&cpy,content,n);
+  args->outputs = malloc(size*sizeof(int));
+  for(int i=0;i<size;++i) 
+  { ocSqrtOramRead(ram,indices[i],output);
+    revealOblivInt(args->outputs+i,output[0],0);
+  }
+  mid = tcp2PBytesSent(pd);
+  midt = wallClock();
+  printf("ORAM bytes sent: %zd, time taken: %f s\n",mid-start,midt-startt);
+  obliv bool* dec = calloc(n,sizeof(obliv bool));
+  for(i=0;i<size;++i)
+  { decoderEn(dec,true,indices[i],n);
+    for(j=0;j<n;++j) obliv if(dec[j])
+      for(int k=0;k<rep;++k)
+        output[k]=content[j*rep+k];
+    revealOblivInt(args->outputs+i,output[0],0);
+  }
+  end = tcp2PBytesSent(pd);
+  endt = wallClock();
+  printf("LinearScan bytes sent: %zd, time taken: %f s\n",end-mid,endt-midt);
+  free(dec);
+  ocSqrtOramRelease(ram);
+  free(indices);
+  free(content);
+  free(pcontent);
+  free(output);
+  args->indexn=size; // for party 1
+}
