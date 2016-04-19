@@ -34,5 +34,5 @@ static void
 ocOramWriteAux(OcOram* ram, void* oramBlock, void* extBlock) obliv 
   { ocCopy(ram->cpy,oramBlock,extBlock); }
 static void inline
-ocOramWrite(OcOram* ram,obliv int index,void* src) obliv
+ocOramWrite(OcOram* ram,obliv int index,const void* src) obliv
   { ocOramAccess(ram,index,ocOramWriteAux,src); }

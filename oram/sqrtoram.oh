@@ -1,15 +1,6 @@
 #pragma once
-#include "copy.oh"
+#include "oram.oh"
 
+// All the "useful" functions such as read/write are declared in oram.oh
 typedef struct OcSqrtOram OcSqrtOram;
-typedef void (*ocBlockAccessFunction)(OcSqrtOram*, void *block, void *arg) obliv;
-
-// Invokes fn(ram,block,arg) on the blocks being indexed
-void ocSqrtOramAccess(OcSqrtOram* ram, obliv int index,
-                      ocBlockAccessFunction fn, void* arg) obliv;
-
-void ocSqrtOramRead(OcSqrtOram* ram,obliv int index,void* data) obliv;
-void ocSqrtOramWrite(OcSqrtOram* ram,void* data,obliv int index) obliv;
-
 OcSqrtOram* ocSqrtOramNew(OcCopy* cpy,void* data,int n);
-void ocSqrtOramRelease(OcSqrtOram* ram);

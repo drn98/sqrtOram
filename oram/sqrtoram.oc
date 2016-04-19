@@ -105,29 +105,33 @@ SqrtPosMap* sqrtPosMapLinearNew(obliv int physical[],int n)
 
 struct OcSqrtOram
 {
+  OcOram super;
   int packingLog,packing; // packing = (1<<packingLog)
-  OcCopy* cpy;
   obliv int *shuffi,*stashi; // logical index
   void *shuff,*stash; // payloads
   bool* usedShuff;
   obliv int* physicalTemp;
-  int n,time,period;
+  int time,period;
   SqrtPosMap* pos;
   int indexBits;
 };
 
+static inline OcCopy* oramCpy(OcSqrtOram* oram) { return oram->super.cpy; }
+static inline int oramN(OcSqrtOram* oram) { return oram->super.n; }
+
 // Forward declarations of OcSqrtOram methods
 void ocSqrtOramReinitialize(OcSqrtOram* oram,const void* data);
-void ocSqrtOramRelease(OcSqrtOram* oram);
+void ocSqrtOramRelease(OcOram* oram);
 OcSqrtOram* ocSqrtOramNew(OcCopy* cpy,const void* data,int n);
 OcSqrtOram* ocSqrtOramNewAux(OcCopy* cpy,void* data,int n,int period);
-void ocSqrtOramAccess(OcSqrtOram* ram, obliv int index,ocBlockAccessFunction fn, void* data);
+void ocSqrtOramAccess(OcOram* ram, obliv int index,OcOramAccessCb fn,
+                      void* data);
 
 void sqrtPosMapRecurRelease(SqrtPosMap* map)
 {
   OcSqrtOram* mapdata = map->data;
-  free(mapdata->cpy);
-  ocSqrtOramRelease(mapdata);
+  free(oramCpy(mapdata));
+  ocSqrtOramRelease(CAST(mapdata));
   free(map);
 }
 void sqrtPosMapRecurReinitialize(SqrtPosMap* map,obliv int physical[])
@@ -215,11 +219,11 @@ static void* element(OcCopy* cpy,void* arr,int x) obliv
 
 void ocSqrtOramShuffleData(OcSqrtOram* ram)
 {
-  OcPermNetwork w = ocPermNetworkRandom(ram->n);
-  ocPermNetworkHalfApply(&w,ram->cpy,ram->shuff);
+  OcPermNetwork w = ocPermNetworkRandom(oramN(ram));
+  ocPermNetworkHalfApply(&w,oramCpy(ram),ram->shuff);
   ocPermNetworkHalfApply(&w,&ocCopyInt,ram->shuffi);
   ocPermInverseAssumingPerm(&w,ram->physicalTemp,ram->shuffi);
-  for(int i=0;i<ram->n;++i) ram->physicalTemp[i]&=(1<<ram->indexBits)-1;
+  for(int i=0;i<oramN(ram);++i) ram->physicalTemp[i]&=(1<<ram->indexBits)-1;
   ocPermNetworkCleanup(&w);
 }
 
@@ -230,15 +234,15 @@ void ocSqrtOramRefresh(OcSqrtOram* ram)
 {
   int i,j=0;
   // Copy stash elements into the empty slots of shuff
-  for(i=0;i<ram->n;++i) if(ram->usedShuff[i])
+  for(i=0;i<oramN(ram);++i) if(ram->usedShuff[i])
   { ram->shuffi[i]=ram->stashi[j];
-    ocCopy(ram->cpy,element(ram->cpy,ram->shuff,i),
-                    element(ram->cpy,ram->stash,j));
+    ocCopy(oramCpy(ram),element(oramCpy(ram),ram->shuff,i),
+                        element(oramCpy(ram),ram->stash,j));
     j++;
   }
   ocSqrtOramShuffleData(ram);
   ram->pos->reinitialize(ram->pos,ram->physicalTemp);
-  for(i=0;i<ram->n;++i) ram->usedShuff[i]=false;
+  for(i=0;i<oramN(ram);++i) ram->usedShuff[i]=false;
   ram->time=0;
 }
 // If data == NULL, this function assumes data already
@@ -246,11 +250,11 @@ void ocSqrtOramRefresh(OcSqrtOram* ram)
 void ocSqrtOramReinitialize(OcSqrtOram* ram,void* data)
 {
   int i,j=0;
-  if(data) ocCopyN(ram->cpy,ram->shuff,data,ram->n);
-  for(i=0;i<ram->n;++i) ram->shuffi[i]=i;
+  if(data) ocCopyN(oramCpy(ram),ram->shuff,data,oramN(ram));
+  for(i=0;i<oramN(ram);++i) ram->shuffi[i]=i;
   ocSqrtOramShuffleData(ram);
   ram->pos->reinitialize(ram->pos,ram->physicalTemp);
-  for(i=0;i<ram->n;++i) ram->usedShuff[i]=false;
+  for(i=0;i<oramN(ram);++i) ram->usedShuff[i]=false;
   ram->time=0;
 }
 
@@ -260,8 +264,10 @@ OcSqrtOram* ocSqrtOramNewAux(OcCopy* cpy,void* data,int n,int period)
 {
   assert(*((char*)ocCurrentProto()->extra)==OC_PD_TYPE_YAO);
   OcSqrtOram* ram = malloc(sizeof*ram);
-  ram->n=n;
-  ram->cpy=cpy;
+  ram->super.n=n;
+  ram->super.cpy=cpy;
+  ram->super.access=ocSqrtOramAccess;
+  ram->super.release=ocSqrtOramRelease;
   ram->shuff = malloc(cpy->eltsize*n);
   ocCopyN(cpy,ram->shuff,data,n);
   int i;
@@ -284,8 +290,9 @@ OcSqrtOram* ocSqrtOramNew(OcCopy* cpy,void* data,int n)
   return ocSqrtOramNewAux(cpy,data,n,period);
 }
 
-void ocSqrtOramRelease(OcSqrtOram* ram)
+void ocSqrtOramRelease(OcOram* ramsuper)
 {
+  OcSqrtOram* ram=CAST(ramsuper);
   free(ram->usedShuff);
   ram->pos->release(ram->pos);
   free(ram->stashi);
@@ -296,46 +303,32 @@ void ocSqrtOramRelease(OcSqrtOram* ram)
   free(ram);
 }
 
-void ocSqrtOramAccess(OcSqrtOram* ram, obliv int index,
-                      ocBlockAccessFunction fn,void* data) obliv
+void ocSqrtOramAccess(OcOram* ramsuper, obliv int index,
+                      OcOramAccessCb fn,void* data) obliv
 {
+  OcSqrtOram* ram = CAST(ramsuper);
   ~obliv(en) {
     int i;
     obliv bool found=false;
+    OcCopy *cpy = oramCpy(ram);
     // Scan through stash
     for(i=0;i<ram->time;++i) obliv if(index==ram->stashi[i])
-    { obliv if(en) fn(ram,element(ram->cpy,ram->stash,i),data);
+    { obliv if(en) fn(ram,element(cpy,ram->stash,i),data);
       found=true;
     }
 
     // Fake/unfake posmap lookup
     int lookupIndex = ram->pos->getPos(ram->pos,index,found);
     // Access one more element from shuffled array
-    ocCopy(ram->cpy,element(ram->cpy,ram->stash,ram->time),
-                    element(ram->cpy,ram->shuff,lookupIndex));
+    ocCopy(oramCpy(ram),element(oramCpy(ram),ram->stash,ram->time),
+                        element(oramCpy(ram),ram->shuff,lookupIndex));
     ram->usedShuff[lookupIndex]=true;
     ram->stashi[ram->time]=ram->shuffi[lookupIndex];
     obliv if(!found & en)
-      fn(ram,element(ram->cpy,ram->stash,ram->time),data);
+      fn(ram,element(cpy,ram->stash,ram->time),data);
     ram->time++;
     if(ram->time==ram->period) {
       ocSqrtOramRefresh(ram);
     }
   }
 }
-
-static void readerFunction(OcSqrtOram * ram, void * oramBlock, 
-                                             void * extBlock) obliv {
-  ocCopy(ram->cpy,extBlock,oramBlock);
-}
-
-static void writerFunction(OcSqrtOram * ram, void * oramBlock, 
-                                             void * extBlock) obliv {
-  ocCopy(ram->cpy,oramBlock,extBlock);
-}
-
-void ocSqrtOramRead(OcSqrtOram* ram,obliv int index,void* data) obliv
-  { ocSqrtOramAccess(ram,index,readerFunction,data); }
-
-void ocSqrtOramWrite(OcSqrtOram* ram,void* data,obliv int index) obliv
-  { ocSqrtOramAccess(ram,index,writerFunction,data); }

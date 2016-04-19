@@ -13,13 +13,13 @@ void testSqrtAccess(void* vargs)
   obliv int output;
   feedOblivIntArray(content,args->content,n,1);
   feedOblivIntArray(indices,args->indices,size,2);
-  OcSqrtOram* ram = ocSqrtOramNew(&ocCopyInt,content,n);
+  OcOram* ram = (OcOram*)ocSqrtOramNew(&ocCopyInt,content,n);
   args->outputs = malloc(size*sizeof(int));
   for(int i=0;i<size;++i) 
-  { ocSqrtOramRead(ram,indices[i],&output);
+  { ocOramRead(&output,ram,indices[i]);
     revealOblivInt(args->outputs+i,output,0);
   }
-  ocSqrtOramRelease(ram);
+  ocOramRelease(ram);
   free(indices);
   free(content);
   args->size=size; // for party 1
