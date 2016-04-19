@@ -1,0 +1,38 @@
+#pragma once
+#include "copy.oh"
+
+// TODO remove decl from sqrtoram.oh
+//      Type changed to Oram*
+// Callback params: OcOram* oram, void* oramblock, void* externalArgument
+typedef struct OcOram OcOram;
+typedef void (*OcOramAccessCb)(OcOram*, void*, void*) obliv;
+
+// TODO n,cpy has moved to parent type OcOram
+struct OcOram
+{ size_t n;
+  OcCopy* cpy;
+  void (*access)(OcOram*,obliv int,OcOramAccessCb,void*) obliv;
+  void (*release)(OcOram*);
+};
+
+// Virtual function wrappers
+static inline void
+ocOramAccess(OcOram* ram,obliv int index,OcOramAccessCb f,void* arg) obliv
+  { ram->access(ram,index,f,arg); }
+static inline void
+ocOramRelease(OcOram* ram) { ram->release(ram); }
+
+// Read/write convenience wrappers
+static void 
+ocOramReadAux(OcOram* ram, void* oramBlock, void* extBlock) obliv 
+  { ocCopy(ram->cpy,extBlock,oramBlock); }
+static void inline
+ocOramRead(void* dest,OcOram* ram,obliv int index) obliv
+  { ocOramAccess(ram,index,ocOramReadAux,dest); }
+
+static void 
+ocOramWriteAux(OcOram* ram, void* oramBlock, void* extBlock) obliv 
+  { ocCopy(ram->cpy,oramBlock,extBlock); }
+static void inline
+ocOramWrite(OcOram* ram,obliv int index,void* src) obliv
+  { ocOramAccess(ram,index,ocOramWriteAux,src); }
