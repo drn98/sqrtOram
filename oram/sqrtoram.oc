@@ -214,9 +214,6 @@ SqrtPosMap* sqrtPosMapRecurNew(obliv int physical[],int n,int period)
 // --------------- OcSqrtOram -----------------------------------------------
 
 
-static void* element(OcCopy* cpy,void* arr,int x) obliv
-  { return x*cpy->eltsize+(char*)arr; }
-
 void ocSqrtOramShuffleData(OcSqrtOram* ram)
 {
   OcPermNetwork w = ocPermNetworkRandom(oramN(ram));
@@ -236,8 +233,8 @@ void ocSqrtOramRefresh(OcSqrtOram* ram)
   // Copy stash elements into the empty slots of shuff
   for(i=0;i<oramN(ram);++i) if(ram->usedShuff[i])
   { ram->shuffi[i]=ram->stashi[j];
-    ocCopy(oramCpy(ram),element(oramCpy(ram),ram->shuff,i),
-                        element(oramCpy(ram),ram->stash,j));
+    ocCopy(oramCpy(ram),ocCopyElt(oramCpy(ram),ram->shuff,i),
+                        ocCopyElt(oramCpy(ram),ram->stash,j));
     j++;
   }
   ocSqrtOramShuffleData(ram);
@@ -313,19 +310,19 @@ void ocSqrtOramAccess(OcOram* ramsuper, obliv int index,
     OcCopy *cpy = oramCpy(ram);
     // Scan through stash
     for(i=0;i<ram->time;++i) obliv if(index==ram->stashi[i])
-    { obliv if(en) fn(ram,element(cpy,ram->stash,i),data);
+    { obliv if(en) fn(ram,ocCopyElt(cpy,ram->stash,i),data);
       found=true;
     }
 
     // Fake/unfake posmap lookup
     int lookupIndex = ram->pos->getPos(ram->pos,index,found);
     // Access one more element from shuffled array
-    ocCopy(oramCpy(ram),element(oramCpy(ram),ram->stash,ram->time),
-                        element(oramCpy(ram),ram->shuff,lookupIndex));
+    ocCopy(oramCpy(ram),ocCopyElt(oramCpy(ram),ram->stash,ram->time),
+                        ocCopyElt(oramCpy(ram),ram->shuff,lookupIndex));
     ram->usedShuff[lookupIndex]=true;
     ram->stashi[ram->time]=ram->shuffi[lookupIndex];
     obliv if(!found & en)
-      fn(ram,element(cpy,ram->stash,ram->time),data);
+      fn(ram,ocCopyElt(cpy,ram->stash,ram->time),data);
     ram->time++;
     if(ram->time==ram->period) {
       ocSqrtOramRefresh(ram);

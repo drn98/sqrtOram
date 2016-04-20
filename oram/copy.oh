@@ -60,6 +60,10 @@ static inline void ocCopyAddN(OcCopy* c,void* dest,const void* src,size_t n)
 static inline void ocCopySubN(OcCopy* c,void* dest,const void* src,size_t n)
   { c->subN(c,dest,src,n); }
 
+static inline void* ocCopyElt(OcCopy* cpy,void* arr,int x) obliv
+  { return x*cpy->eltsize+(char*)arr; }
+
+
 extern const OcCopy ocCopyBool, ocCopyChar, ocCopyShort, ocCopyInt, ocCopyLong,
                     ocCopyLLong, ocCopySizeT;
 
