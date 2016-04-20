@@ -1,0 +1,5 @@
+#pragma once
+#include"oram.oh"
+
+typedef struct OcLinearOram OcLinearOram;
+OcLinearOram* ocLinearOramNew(OcCopy* cpy,void* data,int n);

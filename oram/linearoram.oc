@@ -1,0 +1,39 @@
+#include"linearoram.oh"
+#include"decoder.oh"
+struct OcLinearOram
+{
+  OcOram super;
+  obliv bool* flags;
+  void* data;
+};
+
+void ocLinearOramRelease(OcOram* super)
+{ OcLinearOram* ram = CAST(super);
+  free(ram->data);
+  free(ram->flags);
+  free(ram);
+}
+
+void 
+ocLinearOramAccess(OcOram* super,obliv int index,
+                   OcOramAccessCb f,void* arg) obliv
+{
+  OcLinearOram* ram = CAST(super);
+  ~obliv(en) decoderEn(ram->flags,en,index,super->n);
+  for(int i=0;i<super->n;++i) obliv if(ram->flags[i])
+    f(super,ocCopyElt(super->cpy,ram->data,i),arg);
+}
+
+OcLinearOram* ocLinearOramNew(OcCopy* cpy,void* data,int n)
+{
+  OcLinearOram* ram = malloc(sizeof*ram);
+  ram->data=malloc(cpy->eltsize*n);
+  memcpy(ram->data,data,cpy->eltsize*n);
+  ram->flags=calloc(n,sizeof(obliv bool));
+  OcOram *s = &ram->super;
+  s->n=n;
+  s->cpy=cpy;
+  s->access=ocLinearOramAccess;
+  s->release=ocLinearOramRelease;
+  return ram;
+}
