@@ -1,0 +1,20 @@
+#include "block.oh"
+
+Block* block_initialize(OcCopy* cpy) obliv {
+	Block * res = calloc_obliv(sizeof(Block), 1);
+	res->data = calloc_obliv(1, cpy->eltsize);
+	res->is_dummy = true;
+	return res;	
+}
+
+void block_release(Block* b) obliv {
+	free_obliv(b->data);
+	free_obliv(b);
+}
+
+void block_copy(Block* block, Block * des, OcCopy* cpy) obliv {
+	des->index = block->index;
+	des->is_dummy = block->is_dummy;
+	des->position_label = block->position_label;
+        ocCopy(cpy,des->data,block->data);
+}

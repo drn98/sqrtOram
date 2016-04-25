@@ -1,0 +1,17 @@
+#ifndef BLOCK_H__
+#define BLOCK_H__
+#include "utils.oh"
+#include "copy.oh"
+
+typedef struct Block {
+   obliv int index;
+   obliv bool is_dummy;
+   obliv int position_label;
+   void* data;
+} Block;
+
+Block* block_initialize(OcCopy* cpy) obliv;
+void block_release(Block* b) obliv;
+void block_copy(Block* a, Block* des, OcCopy* cpy) obliv;
+
+#endif
