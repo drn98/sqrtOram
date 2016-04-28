@@ -8,9 +8,6 @@
 #ifndef ORAM_H__
 #define ORAM_H__
 
-// FIXME
-typedef void (* block_access_function)(OcCopy *, void * oram_block, void * external_block) obliv;
-
 typedef struct CircuitOram{
    OcOram super;
    OcCopy *poscpy;
