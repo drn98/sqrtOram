@@ -2,8 +2,9 @@
 #include"testOramAccess.h"
 #include"sqrtoram.oh"
 #include"linearoram.oh"
-#include"ckt/circuit_oram.oh"
+#include"circuit_oram.oh"
 #include"copy.oh"
+
 
 void testOramAccess(void* vargs)
 {
