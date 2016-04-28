@@ -6,7 +6,7 @@
 
 void showUsage(const char* exec)
 {
-  fprintf(stderr,"Usage: %s -- <port> <lin|sqrt> <initial data>\n"
+  fprintf(stderr,"Usage: %s -- <port> <lin|sqrt|ckt> <initial data>\n"
                  "   or: %s <remote-server> <port> <lin|sqrt|ckt> <indices...>\n",exec,exec);
   exit(1);
 }
