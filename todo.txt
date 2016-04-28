@@ -1,4 +1,6 @@
 Move files
 ==========
 
+Circuit ORAM has its own linear scan ORAM. Redundantly.
+Circuit ORAM method naming.
 bench* --> bench/
