@@ -1,4 +1,4 @@
-#include "utils.oh"
+#include "ckt_utils.oh"
 #include <stdio.h>
 
 obliv int bit_mask(obliv int input, int high) obliv {

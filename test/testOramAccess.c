@@ -7,7 +7,7 @@
 void showUsage(const char* exec)
 {
   fprintf(stderr,"Usage: %s -- <port> <lin|sqrt> <initial data>\n"
-                 "   or: %s <remote-server> <port> <lin|sqrt> <indices...>\n",exec,exec);
+                 "   or: %s <remote-server> <port> <lin|sqrt|ckt> <indices...>\n",exec,exec);
   exit(1);
 }
 int main(int argc,char* argv[])
@@ -29,7 +29,9 @@ int main(int argc,char* argv[])
       showUsage(argv[0]);
     me=2;
   }
-  io.type = (strcmp(argv[3],"lin")==0?oramTypeLin:oramTypeSqrt);
+  io.type = (strcmp(argv[3],"lin")==0?oramTypeLin:
+            (strcmp(argv[3],"sqrt")==0?oramTypeSqrt:
+             oramTypeCkt));
   connectOrDie(&pd,argv[1],argv[2]);
   setCurrentParty(&pd,me);
   execYaoProtocol(&pd,testOramAccess,&io);

@@ -4,3 +4,15 @@ Move files
 Circuit ORAM has its own linear scan ORAM. Redundantly.
 Circuit ORAM method naming.
 bench* --> bench/
+
+Circuit ORAM files ... need uniformizing pass.
+block.oc
+block.oh
+circuit_oram.oc
+circuit_oram.oh
+ckt_utils.oc
+ckt_utils.oh
+linear_scan_oram.oc
+linear_scan_oram.oh
+nonrecursive_oram.oc
+nonrecursive_oram.oh

@@ -1,6 +1,6 @@
 #ifndef BLOCK_H__
 #define BLOCK_H__
-#include "utils.oh"
+#include "ckt_utils.oh"
 #include "copy.oh"
 
 typedef struct Block {

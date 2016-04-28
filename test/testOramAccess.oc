@@ -2,6 +2,7 @@
 #include"testOramAccess.h"
 #include"sqrtoram.oh"
 #include"linearoram.oh"
+#include"ckt/circuit_oram.oh"
 #include"copy.oh"
 
 void testOramAccess(void* vargs)
@@ -16,6 +17,10 @@ void testOramAccess(void* vargs)
   feedOblivIntArray(indices,args->indices,size,2);
   OcOram* ram;
   if(args->type==oramTypeSqrt) ram=(OcOram*)ocSqrtOramNew(&ocCopyInt,content,n);
+  else if(args->type==oramTypeCkt) 
+  { ram=(OcOram*)ckt_initialize(n,&ocCopyInt);
+    for(int i=0;i<size;++i) ocOramWrite(ram,i,content+i);
+  }
   else ram=(OcOram*)ocLinearOramNew(&ocCopyInt,content,n);
   args->outputs = malloc(size*sizeof(int));
   for(int i=0;i<size;++i) 

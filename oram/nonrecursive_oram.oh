@@ -1,5 +1,5 @@
 #include "block.oh"
-#include "utils.oh"
+#include "ckt_utils.oh"
 #include <obliv.oh>
 #ifndef NONORAM_H__
 #define NONORAM_H__

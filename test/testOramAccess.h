@@ -2,7 +2,7 @@
 typedef struct
 { int size;
   int *content,*indices,*outputs;
-  enum { oramTypeLin,oramTypeSqrt } type;
+  enum { oramTypeLin,oramTypeSqrt,oramTypeCkt } type;
 } TestOramAccessIO;
 
 void testOramAccess(void* vargs);
