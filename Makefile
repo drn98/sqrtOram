@@ -48,9 +48,13 @@ OBLIVCH = $(OBLIVC_PATH)/src/ext/oblivc
 OBLIVCA = $(OBLIVC_PATH)/_build/libobliv.a
 
 SRC_DIRS = oram util
+SRC_TEST_DIRS = $(SRC_DIRS) test bench
+ALL_C_FILES = $(wildcard $(addsuffix /*.c,$(SRC_TEST_DIRS)))
+ALL_OC_FILES = $(wildcard $(addsuffix /*.oc,$(SRC_TEST_DIRS)))
 INCLUDE_FLAGS = $(addprefix -I ,$(SRC_DIRS) $(OBLIVCH))
 
 .PHONY: all clean
+.SECONDARY:
 all: build/liboram.a
 
 clean:
@@ -65,14 +69,14 @@ build/liboram.a: $(LIBORAM_OBJS)
 
 # Create directories
 .PHONY: builddirs
-BUILD_SUBDIRS=$(addprefix build/,$(SRC_DIRS) test bench)
+BUILD_SUBDIRS=$(addprefix build/,$(SRC_TEST_DIRS))
 $(BUILD_SUBDIRS):
 	mkdir -p $(BUILD_SUBDIRS)
 
 builddirs: $(BUILD_SUBDIRS)
 
 # Include generated dependencies
--include $(patsubst %.oo,%.od,$(OBJS:.o=.d))
+-include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
 
 build/%.o: %.c | builddirs
 	gcc -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
