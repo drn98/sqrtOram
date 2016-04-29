@@ -8,3 +8,4 @@ typedef struct
 } TestOramAccessIO;
 
 void testOramAccess(void* vargs);
+void exchangeInputs(TestOramAccessIO* args,int accn,int n);

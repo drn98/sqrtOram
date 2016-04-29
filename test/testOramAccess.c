@@ -23,6 +23,19 @@ void populateArray(int dest[],int size,int lim)
   int i;
   for(i=0;i<size;++i) dest[i]=rand()%lim;
 }
+
+// Exchange private inputs so we can verify output correctness
+void exchangeInputs(TestOramAccessIO* args,int accn,int n)
+{
+  if(ocCurrentParty()==1) args->indices = malloc(accn*sizeof(int));
+  else args->content = malloc(n*sizeof(int));
+  int i;
+  for(i=0;i<accn;i++) args->indices[i]=ocBroadcastInt(args->indices[i],2);
+  for(i=0;i<n;++i) args->content[i]=ocBroadcastInt(args->content[i],1);
+  args->detailedOut = (  ocBroadcastBool(args->detailedOut,1)
+                      && ocBroadcastBool(args->detailedOut,2));
+}
+
 int main(int argc,char* argv[])
 {
   bool autoSize=false,autoAccess=false;
@@ -30,6 +43,8 @@ int main(int argc,char* argv[])
   TestOramAccessIO io;
   int i,me;
   srand(time(0));
+
+  // Parse parameters
   if(argc<5) showUsage(argv[0]);
   else if(strcmp(argv[1],"--")==0)
   { // Get ORAM size
@@ -61,15 +76,29 @@ int main(int argc,char* argv[])
             (strcmp(argv[3],"sqrt")==0?oramTypeSqrt:
              oramTypeCkt));
   io.detailedOut = !(autoAccess||autoSize);
+
+  // Connect and execute protocol
   connectOrDie(&pd,argv[1],argv[2]);
   setCurrentParty(&pd,me);
   execYaoProtocol(&pd,testOramAccess,&io);
-  if(me==2) free(io.indices);
-  // TODO verify even if details missing
-  for(i=0;i<io.size;++i) printf("%d ",io.outputs[i]);
-  printf("\n");
+
+  // Cleanup, print and verify
+  bool outputok=true;
+  for(i=0;i<io.size;++i) if(io.outputs[i]!=io.content[io.indices[i]])
+  { if(outputok)
+    { printf("Test failed. Position(s):");
+      outputok=false;
+    }
+    printf(" %d",i);
+  }
+  if(outputok) printf("Checks passed\n"); else printf("\n");
+  if(io.detailedOut)
+  { for(i=0;i<io.size;++i) printf("%d ",io.outputs[i]);
+    printf("\n");
+  }
   free(io.outputs);
-  if(me==1) free(io.content);
+  free(io.content);
+  free(io.indices);
   cleanupProtocol(&pd);
   return 0;
 }

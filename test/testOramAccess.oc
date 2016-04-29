@@ -5,7 +5,6 @@
 #include"circuit_oram.oh"
 #include"copy.oh"
 
-
 void testOramAccess(void* vargs)
 {
   TestOramAccessIO* args = vargs;
@@ -28,6 +27,7 @@ void testOramAccess(void* vargs)
   { ocOramRead(&output,ram,indices[i]);
     revealOblivInt(args->outputs+i,output,0);
   }
+  exchangeInputs(args,size,n);
   ocOramRelease(ram);
   free(indices);
   free(content);
