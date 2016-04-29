@@ -28,7 +28,8 @@ OcLinearOram* ocLinearOramNew(OcCopy* cpy,void* data,int n)
 {
   OcLinearOram* ram = malloc(sizeof*ram);
   ram->data=malloc(cpy->eltsize*n);
-  memcpy(ram->data,data,cpy->eltsize*n);
+  if(data) memcpy(ram->data,data,cpy->eltsize*n);
+  else ocCopyZeroFill(cpy,ram->data,n);
   ram->flags=calloc(n,sizeof(obliv bool));
   OcOram *s = &ram->super;
   s->n=n;

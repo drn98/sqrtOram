@@ -1,3 +1,4 @@
+#include "linearoram.oh"
 #include "circuit_oram.oh"
 
 void get_random (CircuitOram * oram, obliv bool * res, int length) obliv {
@@ -35,7 +36,9 @@ CircuitOram* ckt_initialize_more_param(int N, OcCopy* cpy, int recursion_factor,
 	}
 	res->num_recursion = cur+1;
 
-	res->base = lso_initialize(1<<res->orams[cur]->index_size, res->orams[cur]->position_label_size);
+	res->poscpy[cur+1]=ocCopyBoolN(res->orams[cur]->position_label_size);
+	res->base = ocLinearOramNew(res->poscpy+cur+1,
+                                    NULL,1<<res->orams[cur]->index_size);
 
 	res -> gen = newBCipherRandomGen();
 
@@ -55,7 +58,7 @@ void ckt_release(OcOram* super) {
         {	nro_release(oram->orams[i]);
 		free(&oram->poscpy[i]);
 	}
-	lso_release(oram->base);
+	ocOramRelease(oram->base);
 	free(oram->orams);
 	releaseBCipherRandomGen(oram->gen);
 	free(oram->rand_pool);
@@ -109,10 +112,10 @@ void update_trees(CircuitOram* oram, obliv int index, int level, obliv int * pos
 	int block_size = oram->recursion_factor*entry_size;
 	if(level == oram->num_recursion) {
 		obliv bool* bools = calloc_obliv(sizeof(obliv bool), entry_size);
-		lso_read(oram->base, index, bools);
+		ocOramRead(bools, oram->base, index);
 		obliv bool * new_pos_bools = calloc_obliv(sizeof(obliv bool), entry_size);
 		get_random(oram, new_pos_bools, entry_size);
-		lso_write(oram->base, index, new_pos_bools);
+		ocOramWrite(oram->base, index, new_pos_bools);
 
 		bool_to_int_obliv(bools, pos, entry_size);
 		bool_to_int_obliv(new_pos_bools, new_pos, entry_size);

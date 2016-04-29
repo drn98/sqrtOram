@@ -1,6 +1,5 @@
 #include "block.oh"
 #include "nonrecursive_oram.oh"
-#include "linear_scan_oram.oh"
 #include <obliv.oh>
 #include <bcrandom.h>
 #include "copy.oh"
@@ -12,7 +11,7 @@ typedef struct CircuitOram{
    OcOram super;
    OcCopy *poscpy;
    NonRecursiveOram ** orams;
-   LinearScanOram* base;
+   OcOram* base;
    int recursion_factor;
    int cutoff;
    int num_recursion;
