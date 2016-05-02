@@ -1,6 +1,11 @@
 #pragma once
 #include"oram.oh"
 
-typedef struct OcLinearOram OcLinearOram;
+typedef struct
+{ OcOram super;
+  obliv bool* flags;
+  void* data;
+} OcLinearOram;
+
 // If data is NULL, it is zero-filled with ocCopyZeroFill
 OcLinearOram* ocLinearOramNew(OcCopy* cpy,void* data,int n);

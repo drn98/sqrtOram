@@ -1,12 +1,5 @@
 #include"linearoram.oh"
 #include"decoder.oh"
-struct OcLinearOram
-{
-  OcOram super;
-  obliv bool* flags;
-  void* data;
-};
-
 void ocLinearOramRelease(OcOram* super)
 { OcLinearOram* ram = CAST(super);
   free(ram->data);
