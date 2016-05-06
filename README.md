@@ -7,7 +7,7 @@ not allow array access such that the element location depends on private data.
 This library provides data structures for overcoming this limitation, at least
 for honest-but-curious protocols.
 
-**Status:** The library itself is up, but the test/benchmarking code is still
+**Status:** The library itself is ready for use, but the test/benchmarking code is still
 being posted as we clean it up. In the meantime, we are happy to help out if you
 contact us at sza4uq@virginia.edu.
 
@@ -22,7 +22,9 @@ the following actions:
   1. Add this to your `.bashrc`, since it is used by the Makefile. This should
 allow you to invoke the compiler as `$OBLIV_CPATH/bin/oblivcc`.
 
+    ```bash
     export OBLIVC_PATH=/path/to/oblivc
+    ```
 
   2. Clone the repository: `git clone https://github.com/samee/sqrtOram.git`
   3. Perform `make`
