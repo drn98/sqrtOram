@@ -1,0 +1,47 @@
+#include "search.oh"
+#include <oram.oh>
+#include <linearoram.oh>
+#include <math.h>
+
+obliv int binary_search(void* dest, OcOram* ram, 
+                        block_cmp_function fn, void* arg) {
+	int upper_bound = log2(ram->n) + 1;
+
+	obliv int index = -1;
+	obliv int iimin = 0;
+	obliv int iimax = ram->n - 1;
+	obliv int iimid;
+	obliv int cmpresult;
+	void * temp_element = calloc(1, ram->cpy->eltsize);
+	for (int ii = 0; ii < upper_bound; ii++) {
+		iimid = (iimin + iimax) / 2;
+                ocOramRead(temp_element, ram, iimid);
+		cmpresult = fn(temp_element, arg);
+		obliv if (cmpresult == 0) {
+			ocCopy(ram->cpy, dest, temp_element);
+			index = iimid;
+		} else {
+			obliv if (cmpresult < 0) {
+				iimin = iimid + 1;
+			} else {
+				iimax = iimid;
+			}
+		}
+	}
+	free(temp_element);
+	return index;
+}
+
+obliv int linear_search(void* dest, OcLinearOram* ram,
+                        block_cmp_function fn, void* arg) {
+	obliv int index = -1;
+	OcCopy* cpy = ram->super.cpy;
+	for (int ii = 0; ii < ram->super.n; ii++) {
+		void * elt = ocCopyElt(cpy,ram->data,ii);
+		obliv if (fn(elt,arg)==0) {
+			ocCopy(cpy,dest,elt);
+			index = ii;
+		}
+	}
+	return index;
+}

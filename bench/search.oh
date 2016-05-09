@@ -1,0 +1,3 @@
+#pragma once
+
+typedef obliv int (* block_cmp_function)(void * blk, void * arg) obliv;

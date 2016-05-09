@@ -1,9 +1,10 @@
 #pragma once
 #include<stdbool.h>
+#include<util.h>
 typedef struct
 { int size;
   int *content,*indices,*outputs;
-  enum { oramTypeLin,oramTypeSqrt,oramTypeCkt } type;
+  OramType type;
   bool detailedOut;
 } TestOramAccessIO;
 
