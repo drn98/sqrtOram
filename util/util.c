@@ -1,5 +1,6 @@
 #include"util.h"
 #include<assert.h>
+#include<ctype.h>
 #include<error.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -80,6 +81,10 @@ cmdUnknownOptionExit(const char opt[])
 struct CmdNetSpec cmdNetSpec = {};
 bool cmdShowResult = true;
 
+void cmdParseEnd(CmdParseState* cargs)
+{ if(cargs->cmdIndex!=cargs->argc)
+    error(-1,0,"Unrecognized parameter '%s'\n",cargs->argv[cargs->cmdIndex]);
+}
 bool cmdParseMode(CmdParseState* cargs)
 {
   const char* modes[] = {"test","bench"};
@@ -163,6 +168,19 @@ cmdParseSingleInt(CmdParseState* cargs,char shortopt,const char* longopt,
   return true;
 }
 
+// Parses all remaining arguments as integers.
+void cmdParseTermInts(CmdParseState* ps,int** outarray,int* outsize)
+{
+  int *dest,n,i;
+  n=ps->argc-ps->cmdIndex;
+  dest=malloc(n*sizeof(int));
+
+  for(i=0;i<n;++i) if(sscanf(ps->argv[i+ps->cmdIndex],"%d",dest+i)!=1)
+    error(-1,0,"Integer expected, not '%s'\n",ps->argv[i+ps->cmdIndex]);
+
+  *outarray=dest;
+  *outsize=n;
+}
 bool cmdParseOramType(CmdParseState* cargs)
 {
   const char* targ = cmdParseSingleArg(cargs,'t',"oramtype");

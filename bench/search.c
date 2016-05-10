@@ -54,6 +54,11 @@ bool searchCmdSizeCount(CmdParseState* s,void* vio)
   return cmdParseSingleInt(s,'z',"size",&io->n,-1)
       || cmdParseSingleInt(s,'c',"axcount",&io->axc,-1);
 }
+void cmdParseInputs(CmdParseState* ps,SearchIO* io)
+{
+  if(cmdMeServing()) cmdParseTermInts(ps,&io->data,&io->n);
+  else cmdParseTermInts(ps,&io->indices,&io->axc);
+}
 
 int main(int argc,char *argv[])
 {
@@ -62,7 +67,10 @@ int main(int argc,char *argv[])
   CmdParseState ps = cmdParseInit(argc,argv);
   cmdSetUsage(cmdUsage);
   cmdParseCommon(&ps,searchCmdSizeCount,&io);
-  // Parse my own params, --size, --axcount, inputs
+  if(cmdMode==cmdModeTest) cmdParseInputs(&ps,&io);
+  cmdParseEnd(&ps);
   cmdConnectOrDie(&pd);
+  // Check if params match, check if bench param provided
+  free(io.data); free(io.indices); free(io.outputs);
   return 0;
 }

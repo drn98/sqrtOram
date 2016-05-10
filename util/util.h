@@ -28,6 +28,8 @@ oramTypeFromString(const char* s)
 void cmdShowUsageExit(const char cmdUsage[]);
 
 extern struct CmdNetSpec { const char *server,*port; } cmdNetSpec;
+// Call this *after* cmdParseCommon() returns
+static inline bool cmdMeServing(void) { return cmdNetSpec.server==NULL; }
 enum { cmdModeNone=-1,cmdModeTest,cmdModeBench } cmdMode;
 extern bool cmdShowResult;
 void cmdParseCheckNumeric(const char* s);
@@ -44,6 +46,11 @@ extern OramType cmdOramType;
 
 const char* cmdParseSingleArg(CmdParseState* cargs,
     char shortopt,const char* longopt);
+bool cmdParseSingleInt(CmdParseState* cargs,char shortopt,const char* longopt,
+                  int* dest,int init);
+// Parses all remaining arguments as integers.
+void cmdParseTermInts(CmdParseState* ps,int** outarray,int* outsize);
+void cmdParseEnd(CmdParseState* cargs);
 
 void cmdParseCommon(
   CmdParseState* cargs,
