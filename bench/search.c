@@ -20,7 +20,10 @@
    There should be a "mismatched params" error.
    */
 
+#include<error.h>
+#include<obliv.h>
 #include<stdbool.h>
+#include<stdio.h>
 
 #include<util.h>
 #include"search.h"
@@ -54,11 +57,6 @@ bool searchCmdSizeCount(CmdParseState* s,void* vio)
   return cmdParseSingleInt(s,'z',"size",&io->n,-1)
       || cmdParseSingleInt(s,'c',"axcount",&io->axc,-1);
 }
-void cmdParseInputs(CmdParseState* ps,SearchIO* io)
-{
-  if(cmdMeServing()) cmdParseTermInts(ps,&io->data,&io->n);
-  else cmdParseTermInts(ps,&io->indices,&io->axc);
-}
 
 int main(int argc,char *argv[])
 {
@@ -67,10 +65,18 @@ int main(int argc,char *argv[])
   CmdParseState ps = cmdParseInit(argc,argv);
   cmdSetUsage(cmdUsage);
   cmdParseCommon(&ps,searchCmdSizeCount,&io);
-  if(cmdMode==cmdModeTest) cmdParseInputs(&ps,&io);
+  if(cmdMode==cmdModeTest)
+  { if(cmdMeServing())
+    { cmdParseTermInts(&ps,&io.data,&io.n);
+      for(int i=1;i<io.n;++i) if(io.data[i-1]>io.data[i])
+        error(-1,0,"Input data should be sorted\n");
+    }
+    else cmdParseTermInts(&ps,&io.indices,&io.axc);
+  }
   cmdParseEnd(&ps);
   cmdConnectOrDie(&pd);
-  // Check if params match, check if bench param provided
+  execYaoProtocol(&pd,searchProto,&io);
+  // Check if output makes sense if we are in test mode
   free(io.data); free(io.indices); free(io.outputs);
   return 0;
 }

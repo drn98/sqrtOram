@@ -1,4 +1,5 @@
 #include"util.h"
+#include<obliv.oh> // for ocBroadcast
 #include<assert.h>
 #include<ctype.h>
 #include<error.h>
@@ -80,6 +81,7 @@ cmdUnknownOptionExit(const char opt[])
 
 struct CmdNetSpec cmdNetSpec = {};
 bool cmdShowResult = true;
+enum CmdMode cmdMode = cmdModeNone;
 
 void cmdParseEnd(CmdParseState* cargs)
 { if(cargs->cmdIndex!=cargs->argc)
@@ -180,6 +182,7 @@ void cmdParseTermInts(CmdParseState* ps,int** outarray,int* outsize)
 
   *outarray=dest;
   *outsize=n;
+  ps->cmdIndex+=n;
 }
 bool cmdParseOramType(CmdParseState* cargs)
 {
@@ -242,4 +245,15 @@ cmdParseInit(int argc, char* argv[])
 {
   CmdParseState rv = {.argc=argc,.argv=argv,.cmdIndex=1};
   return rv;
+}
+
+void
+matchParamInt(int x,bool init,const char* parname)
+{
+  bool init1 = ocBroadcastBool(init,1);
+  int  x1    = ocBroadcastInt(x,1);
+  bool init2 = ocBroadcastBool(init,2);
+  int  x2    = ocBroadcastInt(x,2);
+  if(init1 && init2 && x1!=x2)
+    error(-1,0,"Mismatched parameter %s\n",parname);
 }

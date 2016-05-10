@@ -1,8 +1,10 @@
-#include "search.oh"
+#include "search.h"
+#include <util.h>
 #include <oram.oh>
 #include <linearoram.oh>
 #include <math.h>
 
+typedef obliv int (* block_cmp_function)(void * blk, void * arg) obliv;
 obliv int binary_search(void* dest, OcOram* ram, 
                         block_cmp_function fn, void* arg) {
 	int upper_bound = log2(ram->n) + 1;
@@ -44,4 +46,14 @@ obliv int linear_search(void* dest, OcLinearOram* ram,
 		}
 	}
 	return index;
+}
+
+void searchProto(void* varg)
+{
+  SearchIO* arg=varg;
+  matchParamInt(arg->n,arg->n!=-1,"size");
+  matchParamInt(arg->axc,arg->axc!=-1,"axcount");
+  matchParamInt(cmdOramType,true,"oram type");
+  // Check if params match, check if bench param provided
+  // Check if input sorted.
 }

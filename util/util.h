@@ -29,8 +29,9 @@ void cmdShowUsageExit(const char cmdUsage[]);
 
 extern struct CmdNetSpec { const char *server,*port; } cmdNetSpec;
 // Call this *after* cmdParseCommon() returns
-static inline bool cmdMeServing(void) { return cmdNetSpec.server==NULL; }
-enum { cmdModeNone=-1,cmdModeTest,cmdModeBench } cmdMode;
+static inline bool cmdMeServing(void) 
+  { return cmdNetSpec.server==NULL || cmdNetSpec.server[0]=='\0'; }
+enum CmdMode { cmdModeNone=-1,cmdModeTest,cmdModeBench } cmdMode;
 extern bool cmdShowResult;
 void cmdParseCheckNumeric(const char* s);
 
@@ -63,3 +64,5 @@ void cmdParseCommon(
 //   Unrecognized error, syntax error, error messages (e.g. "-n 50" vs "-n -x")
 //   Combined single options (e.g. "-xk"), conflicting values (compare with
 //   -1, check bool etc.).
+
+void matchParamInt(int x,bool init,const char* msg);
