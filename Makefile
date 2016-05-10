@@ -79,7 +79,7 @@ builddirs: $(BUILD_SUBDIRS)
 -include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
 
 build/%.o: %.c | builddirs
-	gcc -Wall -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
+	gcc -Wall -std=gnu99 -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
 	cpp -MM $(CFLAGS) $*.c $(INCLUDE_FLAGS) -MT $@ > build/$*.d
 
 build/%.oo: %.oc | builddirs
