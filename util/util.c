@@ -1,5 +1,6 @@
 #include"util.h"
 #include<assert.h>
+#include<error.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -12,21 +13,24 @@ double wallClock()
   return t.tv_sec+1e-9*t.tv_nsec;
 }
 
-void connectOrDie(ProtocolDesc* pd,const char* server,const char* port)
+void connectOrDieAux(ProtocolDesc* pd,const char* server,const char* port)
 {
-  if(strcmp("--",server)==0) // I *am* the server
-  { if(protocolAcceptTcp2P(pd,port)!=0)
-    { fprintf(stderr,"TCP accept failed\n");
-      exit(1);
-    }
+  if(!server) // I *am* the server
+  { if(protocolAcceptTcp2P(pd,port)!=0) error(1,0,"TCP accept failed\n");
     setCurrentParty(pd,1); 
   }else
   { if(protocolConnectTcp2P(pd,server,port)!=0)
-    { fprintf(stderr,"TCP connect failed\n");
-      exit(1);
-    }
+      error(1,0,"TCP connect failed\n");
     setCurrentParty(pd,2);
   }
+}
+void connectOrDie(ProtocolDesc* pd,const char* server,const char* port)
+  { connectOrDieAux(pd,strcmp("--",server)==0?0:server,port); }
+
+void cmdConnectOrDie(ProtocolDesc* pd)
+{ const char* s = cmdNetSpec.server;
+  s=(s&&s[0]?s:NULL);
+  connectOrDieAux(pd,s,cmdNetSpec.port); 
 }
 
 int
@@ -47,9 +51,9 @@ cmdIsPrefix(const char* prefix,const char* str)
   }
 }
 bool
-checkPrefix(const char* alts[],int n)
+noPrefix(const char* alts[],int n)
 { int i,j;
-  for(i=0;i<n;++i) for(j=0;j<n;++j) if(i!=j) if(cmdIsPrefix(alts[i],alts[j]))
+  for(i=0;i<n;++i) for(j=0;j<n;++j) if(i!=j && cmdIsPrefix(alts[i],alts[j]))
     return false;
   return true;
 }
@@ -57,21 +61,15 @@ checkPrefix(const char* alts[],int n)
 int
 cmdFindFirstPrefix(const char* search,const char* alts[],int n)
 {
-  assert(!checkPrefix(alts,n));
+  assert(noPrefix(alts,n));
   int i,res=-1;
   for(i=0;i<n;++i) if(cmdIsPrefix(search,alts[i]))
   { if(res==-1) res=i;
     else return -1;
   }
-  return i;
+  return res;
 }
 
-void
-cmdErrExit(const char cmdUsage[])
-{
-  fprintf(stderr,"%s\n",cmdUsage);
-  exit(-1);
-}
 void
 cmdUnknownOptionExit(const char opt[])
 {
@@ -79,7 +77,6 @@ cmdUnknownOptionExit(const char opt[])
   exit(-1);
 }
 
-int cmdIndex = 1;
 struct CmdNetSpec cmdNetSpec = {};
 bool cmdShowResult = true;
 
@@ -87,11 +84,9 @@ bool cmdParseMode(CmdParseState* cargs)
 {
   const char* modes[] = {"test","bench"};
   int i = cmdFindFirst(cargs->argv[cargs->cmdIndex],modes,2);
-  if(i==-1) return true;
+  if(i==-1) return false;
   if(cmdMode!=-1 && cmdMode!=i) 
-  { fprintf(stderr,"Choose either 'test' or 'bench', not both\n");
-    return false;
-  }
+    error(-1,0,"Choose either 'test' or 'bench', not both\n");
   cmdMode=i;
   if(i==cmdModeBench) cmdShowResult=false;
   cargs->cmdIndex++;
@@ -109,11 +104,11 @@ void cmdParseCheckNumeric(const char* s)
 }
 bool cmdParseNetwork(CmdParseState* cargs)
 {
-  if(cmdNetDone()) return true;
+  if(cmdNetDone()) return false;
   const char* a = cargs->argv[cargs->cmdIndex];
   char* p=strchr(a,':');
-  if(!p) return true;
-  if(!numericString(p+1)) return true;
+  if(!p) return false;
+  if(!numericString(p+1)) return false;
   cmdNetSpec.port=p+1;
   *p='\0';
   cmdNetSpec.server=a;
@@ -125,11 +120,9 @@ bool cmdParseShowResult(CmdParseState* cargs)
   const char* a = cargs->argv[cargs->cmdIndex];
   const char* opt[] = {"--showResult","--hideResult","+o","-o"};
   int i = cmdFindFirst(a,opt,sizeof(opt)/sizeof(*opt));
-  if(i==-1) return true;
+  if(i==-1) return false;
   if(cmdMode!=cmdModeTest) 
-  { fprintf(stderr,"Option '%s' can only be used with 'search test'.i\n",a);
-    return false;
-  }
+    error(-1,0,"Option '%s' can only be used with 'search test'.i\n",a);
   cmdShowResult=(i%2==0);
   cargs->cmdIndex++;
   return true;
@@ -152,9 +145,8 @@ cmdParseSingleArg(CmdParseState* cargs,char shortopt,const char* longopt)
   else if(a[0]=='-' && a[1]==shortopt)
   { if(a[2]!='\0') { cargs->cmdIndex++; return a+2; }
     else if(cargs->cmdIndex+1==cargs->argc)
-    { fprintf(stderr,"Error: argument missing for -%c\n",shortopt);
-      exit(-1);
-    }else { cargs->cmdIndex+=2; return cargs->argv[cmdIndex-1]; }
+      error(-1,0,"Error: argument missing for -%c\n",shortopt);
+    else { cargs->cmdIndex+=2; return cargs->argv[cargs->cmdIndex-1]; }
   }
   return 0;
 }
@@ -163,32 +155,22 @@ cmdParseSingleInt(CmdParseState* cargs,char shortopt,const char* longopt,
                   int* dest,int init)
 {
   const char* a = cmdParseSingleArg(cargs,shortopt,longopt);
-  if(!a) return true;
+  if(!a) return false;
   int x;
-  if(sscanf(a,"%d",&x)!=1)
-  { fprintf(stderr,"Integer expected, not '%s'\n",a);
-    exit(-1);
-  }
+  if(sscanf(a,"%d",&x)!=1) error(-1,0,"Integer expected, not '%s'\n",a);
   if(*dest==init || *dest==x) *dest=x;
-  else
-  { fprintf(stderr,"Conflicting values for --%s\n",longopt);
-    exit(-1);
-  }
+  else error(-1,0,"Conflicting values for --%s\n",longopt);
+  return true;
 }
 
 bool cmdParseOramType(CmdParseState* cargs)
 {
   const char* targ = cmdParseSingleArg(cargs,'t',"oramtype");
-  if(!targ) return true;
+  if(!targ) return false;
   OramType t = oramTypeFromString(targ);
-  if(t==oramTypeNone)
-  { fprintf(stderr,"Invalid oram type %s\n",targ);
-    return false;
-  }
+  if(t==oramTypeNone) error(-1,0,"Invalid oram type %s\n",targ);
   if(cmdOramType!=oramTypeNone && cmdOramType!=t)
-  { fprintf(stderr,"Conflicting oram types specified\n");
-    return false;
-  }
+    error(-1,0,"Conflicting oram types specified\n");
   cmdOramType=t;
   return true;
 }
@@ -209,41 +191,33 @@ cmdParseCommon(cargs,appopts,appoptArgs)
   void* appoptArgs;
 {
   assert(cargs->cmdIndex==1);
+  if(cargs->argc==1) error(-1,0,"%s\n",cmdUsage);
 
   while(cargs->cmdIndex<cargs->argc)
-  { int cur=cargs->cmdIndex;
-    if(!cmdParseMode(cargs)     ||
-       !cmdParseOramType(cargs) ||
-       !cmdParseNetwork(cargs)) cmdErrExit(cmdUsage);
+  { 
+    if(!cmdParseMode(cargs)     &&
+       !cmdParseOramType(cargs) &&
+       !cmdParseNetwork(cargs)) 
+      cmdUnknownOptionExit(cargs->argv[cargs->cmdIndex]);
     if(cmdMode!=cmdModeNone) break;
-    if(cur==cargs->cmdIndex) cmdUnknownOptionExit(cargs->argv[cur]);
   }
 
   while(cargs->cmdIndex<cargs->argc)
   { // Mode is set at this point
     const char* a=cargs->argv[cargs->cmdIndex];
     if(a[0]!='-' && a[0]!='+' && cmdModeNetDone()) break; // End of options
-    int cur=cargs->cmdIndex;
-    if(!cmdParseNetwork(cargs)    ||
-       !cmdParseOramType(cargs)   ||
-       !cmdParseShowResult(cargs) ||
+    if(!cmdParseNetwork(cargs)    &&
+       !cmdParseOramType(cargs)   &&
+       !cmdParseShowResult(cargs) &&
        !appopts(cargs,appopts)) 
-      cmdErrExit(cmdUsage);
-    if(cur==cargs->cmdIndex) cmdUnknownOptionExit(cargs->argv[cur]);
+      cmdUnknownOptionExit(cargs->argv[cargs->cmdIndex]);
   }
   if(cmdMode==cmdModeNone) 
-  { fprintf(stderr,"Neither 'test' nor 'bench' was specified\n");
-    exit(-1);
-  }
+    error(-1,0,"Neither 'test' nor 'bench' was specified\n");
   if(!cmdNetDone())
-  { fprintf(stderr,"Network server/port options missing\n");
-    exit(-1);
-  }
+    error(-1,0,"Network server/port options missing\n");
   if(!cmdOramTypeDone())
-  { fprintf(stderr,"Required --oramtype is missing\n");
-    exit(-1);
-  }
-  // Parse non-option params outside function first
+    error(-1,0,"Required --oramtype is missing\n");
 }
 CmdParseState
 cmdParseInit(int argc, char* argv[])

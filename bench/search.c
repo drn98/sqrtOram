@@ -52,7 +52,7 @@ bool searchCmdSizeCount(CmdParseState* s,void* vio)
 {
   SearchIO* io=vio;
   return cmdParseSingleInt(s,'z',"size",&io->n,-1)
-      && cmdParseSingleInt(s,'c',"axcount",&io->axc,-1);
+      || cmdParseSingleInt(s,'c',"axcount",&io->axc,-1);
 }
 
 int main(int argc,char *argv[])

@@ -1,7 +1,11 @@
 #pragma once
 #include<obliv.h>
 
+// Legacy version: server == "--" means we listen
 void connectOrDie(ProtocolDesc* pd,const char* server,const char* port);
+// New version: uses whatever is in cmdNetSpec. .server==NULL means we listen
+void cmdConnectOrDie(ProtocolDesc* pd);
+
 double wallClock();
 
 bool cmdIsPrefix(const char* prefix,const char* str);
@@ -22,7 +26,6 @@ oramTypeFromString(const char* s)
 }
 
 void cmdShowUsageExit(const char cmdUsage[]);
-extern int cmdIndex;
 
 extern struct CmdNetSpec { const char *server,*port; } cmdNetSpec;
 enum { cmdModeNone=-1,cmdModeTest,cmdModeBench } cmdMode;
