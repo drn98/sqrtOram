@@ -230,7 +230,7 @@ cmdParseCommon(cargs,appopts,appoptArgs)
     if(!cmdParseNetwork(cargs)    &&
        !cmdParseOramType(cargs)   &&
        !cmdParseShowResult(cargs) &&
-       !appopts(cargs,appopts)) 
+       !appopts(cargs,appoptArgs))
       cmdUnknownOptionExit(cargs->argv[cargs->cmdIndex]);
   }
   if(cmdMode==cmdModeNone) 
@@ -248,12 +248,22 @@ cmdParseInit(int argc, char* argv[])
 }
 
 void
-matchParamInt(int x,bool init,const char* parname)
+matchedBroadcastInt(int* x,bool init,const char* parname)
 {
   bool init1 = ocBroadcastBool(init,1);
-  int  x1    = ocBroadcastInt(x,1);
+  int  x1    = ocBroadcastInt(*x,1);
   bool init2 = ocBroadcastBool(init,2);
-  int  x2    = ocBroadcastInt(x,2);
+  int  x2    = ocBroadcastInt(*x,2);
+  if(!init1 && !init2)
+    error(-1,0,"Missing parameter %s\n",parname);
   if(init1 && init2 && x1!=x2)
     error(-1,0,"Mismatched parameter %s\n",parname);
+  *x=(init1?x1:x2);
+}
+int* randomIntArray(int max,int n)
+{
+  // TODO initialize random generator in main() somewhere
+  int i,*rv = malloc(n*sizeof(int));
+  for(i=0;i<n;++i) rv[i]=rand()%n;
+  return rv;
 }

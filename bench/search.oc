@@ -48,12 +48,18 @@ obliv int linear_search(void* dest, OcLinearOram* ram,
 	return index;
 }
 
+static int cmpint(void* a,void* b) { return *(int*)a-*(int*)b; }
+// Does the input verification/initialization that require both parties.
 void searchProto(void* varg)
 {
   SearchIO* arg=varg;
-  matchParamInt(arg->n,arg->n!=-1,"size");
-  matchParamInt(arg->axc,arg->axc!=-1,"axcount");
-  matchParamInt(cmdOramType,true,"oram type");
-  // Check if params match, check if bench param provided
-  // Check if input sorted.
+  matchedBroadcastInt(&arg->n,arg->n!=-1,"size");
+  matchedBroadcastInt(&arg->axc,arg->axc!=-1,"axcount");
+  matchedBroadcastInt(&cmdOramType,true,"oram type");
+  if(!arg->data)
+  { arg->data=randomIntArray((1<<31)-1,arg->n);
+    qsort(arg->data,arg->n,sizeof(int),cmpint);
+  }
+  if(!arg->indices) arg->indices=randomIntArray(arg->n,arg->axc);
+  // TODO the actual protocol
 }

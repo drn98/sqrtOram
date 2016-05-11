@@ -29,6 +29,7 @@
 #include"search.h"
 
 const char cmdUsage[] =
+    "\n"
     "Usage: search test        :port <options> <haystack>\n"
     "   or: search test  server:port <options> <needles>\n"
     "   or: search bench --size=# --axcount=# :port\n"

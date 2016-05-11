@@ -65,4 +65,5 @@ void cmdParseCommon(
 //   Combined single options (e.g. "-xk"), conflicting values (compare with
 //   -1, check bool etc.).
 
-void matchParamInt(int x,bool init,const char* msg);
+void matchedBroadcastInt(int* x,bool init,const char* msg);
+int* randomIntArray(int max,int n);
