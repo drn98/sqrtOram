@@ -315,7 +315,7 @@ void ocSqrtOramAccess(OcOram* ramsuper, obliv int index,
     }
 
     // Fake/unfake posmap lookup
-    int lookupIndex = ram->pos->getPos(ram->pos,index,found);
+    int lookupIndex = ram->pos->getPos(ram->pos,index,found|!en);
     // Access one more element from shuffled array
     ocCopy(oramCpy(ram),ocCopyElt(oramCpy(ram),ram->stash,ram->time),
                         ocCopyElt(oramCpy(ram),ram->shuff,lookupIndex));
