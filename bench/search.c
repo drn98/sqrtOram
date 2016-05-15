@@ -77,6 +77,11 @@ int main(int argc,char *argv[])
   cmdParseEnd(&ps);
   cmdConnectOrDie(&pd);
   execYaoProtocol(&pd,searchProto,&io);
+  if(cmdShowResult)
+  { printf("Outputs:");
+    for(int i=0;i<io.axc;++i) printf(" %d",io.outputs[i]);
+    printf("\n");
+  }
   // Check if output makes sense if we are in test mode
   free(io.data); free(io.indices); free(io.outputs);
   return 0;

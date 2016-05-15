@@ -4,51 +4,71 @@
 #include <linearoram.oh>
 #include <math.h>
 
-typedef obliv int (* block_cmp_function)(void * blk, void * arg) obliv;
-obliv int binary_search(void* dest, OcOram* ram, 
-                        block_cmp_function fn, void* arg) {
-	int upper_bound = log2(ram->n) + 1;
+typedef obliv bool (* block_lt_function)(void * blk, void * arg) obliv;
+int rangeHalf(int x) { return x>1?(x+1)/2:0; }
 
-	obliv int index = -1;
+obliv int binary_search(void* dest, OcOram* ram, 
+                        block_lt_function fn, void* arg) {
+	int range;
+        if(ram->n==0) return 0;
+
+        // In the obliv world, we don't know exactly how many iterations
+        // are required. So there is a risk that we might invoke ocOramRead()
+        // on out of bound index like n.
 	obliv int iimin = 0;
 	obliv int iimax = ram->n - 1;
-	obliv int iimid;
-	obliv int cmpresult;
+	obliv int less;
 	void * temp_element = calloc(1, ram->cpy->eltsize);
-	for (int ii = 0; ii < upper_bound; ii++) {
-		iimid = (iimin + iimax) / 2;
+	for (range=ram->n-1; range; range=rangeHalf(range)) {
+		obliv int iimid = (iimin + iimax) / 2;
                 ocOramRead(temp_element, ram, iimid);
-		cmpresult = fn(temp_element, arg);
-		obliv if (cmpresult == 0) {
-			ocCopy(ram->cpy, dest, temp_element);
-			index = iimid;
-		} else {
-			obliv if (cmpresult < 0) {
-				iimin = iimid + 1;
-			} else {
-				iimax = iimid;
-			}
-		}
+		less = fn(temp_element, arg);
+                obliv if(less & iimin<iimax) iimin = iimid+1;
+                else iimax=iimid;
 	}
+        // At this point, we have iimin==iimax
+        // But, if iimin==n-1, we may need to check one more element.
+        ocOramRead(dest, ram, iimin);
+        obliv if(fn(dest, arg)) iimin++;
 	free(temp_element);
-	return index;
+	return iimin;
 }
 
 obliv int linear_search(void* dest, OcLinearOram* ram,
-                        block_cmp_function fn, void* arg) {
-	obliv int index = -1;
+                        block_lt_function fn, void* arg) {
+	obliv int index = ram->super.n;
+        obliv bool done = false;
 	OcCopy* cpy = ram->super.cpy;
 	for (int ii = 0; ii < ram->super.n; ii++) {
 		void * elt = ocCopyElt(cpy,ram->data,ii);
-		obliv if (fn(elt,arg)==0) {
+                obliv bool less = fn(elt,arg);
+		obliv if (!done & !less) {
 			ocCopy(cpy,dest,elt);
 			index = ii;
+                        done = true;
 		}
 	}
 	return index;
 }
 
 static int cmpint(void* a,void* b) { return *(int*)a-*(int*)b; }
+obliv bool intLessThan(void* a,void* b) obliv
+  { return *(obliv int*)a<*(obliv int*)b; }
+
+// Needs to go into util.oc
+#include<sqrtoram.oh>
+#include<circuit_oram.oh>
+OcOram* benchmarkOram(void* data,int n)
+{ if(cmdOramType==oramTypeLin)
+    return &ocLinearOramNew(&ocCopyInt,data,n)->super;
+  else if(cmdOramType==oramTypeSqrt)
+    return CAST(ocSqrtOramNew(&ocCopyInt,data,n));
+  else
+    // Despite the name, this returns an *uninitialized* ORAM
+    // Initializing would take too long
+    return &ckt_initialize(n,&ocCopyInt)->super;
+}
+
 // Does the input verification/initialization that require both parties.
 void searchProto(void* varg)
 {
@@ -61,5 +81,28 @@ void searchProto(void* varg)
     qsort(arg->data,arg->n,sizeof(int),cmpint);
   }
   if(!arg->indices) arg->indices=randomIntArray(arg->n,arg->axc);
-  // TODO the actual protocol
+
+  obliv int *in  = calloc(arg->n,sizeof*in);
+  obliv int *pos = calloc(arg->axc,sizeof*pos);
+  obliv int *out = calloc(arg->axc,sizeof*out);
+  obliv int x;
+  int k;
+  feedOblivIntArray(in,arg->data,arg->n,1);
+  feedOblivIntArray(pos,arg->indices,arg->axc,2);
+  if(cmdOramType==oramTypeLin)
+  { OcLinearOram *ram = ocLinearOramNew(&ocCopyInt,in,arg->n);
+    for(k=0;k<arg->axc;++k)
+      out[k]=linear_search(&x,ram,intLessThan,pos+k);
+    ocOramRelease(&ram->super);
+  }else
+  {
+    OcOram *ram = benchmarkOram(in,arg->n);
+    for(k=0;k<arg->axc;++k)
+      out[k]=binary_search(&x,ram,intLessThan,pos+k);
+    ocOramRelease(ram);
+  }
+  if(!arg->outputs) arg->outputs=malloc(arg->axc*sizeof(int));
+  for(k=0;k<arg->axc;++k) revealOblivInt(arg->outputs+k,out[k],1);
+  for(k=0;k<arg->axc;++k) revealOblivInt(arg->outputs+k,out[k],2);
+  free(out); free(pos); free(in);
 }
