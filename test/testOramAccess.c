@@ -2,7 +2,10 @@
 #include"util.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<time.h>
 #include<obliv.h>
+#include<obliv_common.h>
+#include<obliv.oh>
 
 void showUsage(const char* exec)
 {
