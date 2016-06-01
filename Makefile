@@ -60,9 +60,11 @@ ALL_C_FILES = $(wildcard $(addsuffix /*.c,$(SRC_TEST_DIRS)))
 ALL_OC_FILES = $(wildcard $(addsuffix /*.oc,$(SRC_TEST_DIRS)))
 INCLUDE_FLAGS = $(addprefix -I ,$(SRC_DIRS) $(OBLIVCH))
 
-.PHONY: all clean
+.PHONY: all test clean
 .SECONDARY:
 all: build/liboram.a
+
+test: $(TEST_BINS)
 
 clean:
 	rm -rf build

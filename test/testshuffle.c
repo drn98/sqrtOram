@@ -1,9 +1,7 @@
 #include<obliv.h>
 #include<stdio.h>
-#include"util.h" // This is just stupid. Fix this to not include path
-                 // to oblivcc test folder in Makefile
-
-void testShuffle(void*);
+#include"util.h" 
+#include"testshuffle.h"
 
 void showUsage(const char* exec)
 {

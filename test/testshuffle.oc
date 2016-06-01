@@ -1,5 +1,6 @@
 #include<obliv.oh>
 #include"shuffle.oh"
+#include"testshuffle.h"
 #include<stdio.h>
 #ifndef MUX_BATCH
 #define MUX_BATCH n
