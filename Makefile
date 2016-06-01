@@ -46,9 +46,13 @@ SHELL = /bin/bash
 OBLIVCC = $(OBLIVC_PATH)/bin/oblivcc
 OBLIVCH = $(OBLIVC_PATH)/src/ext/oblivc
 OBLIVCA = $(OBLIVC_PATH)/_build/libobliv.a
+CFLAGS=-O3
 
 SRC_DIRS = oram util
-SRC_TEST_DIRS = $(SRC_DIRS) test bench
+TEST_DIRS = test bench
+SRC_TEST_DIRS = $(SRC_DIRS) $(TEST_DIRS)
+TEST_BINS=$(patsubst %.c,build/%, \
+	  $(patsubst %.oc,%,$(shell grep -l '^int main\>' $(TEST_DIRS:=/*))))
 ALL_C_FILES = $(wildcard $(addsuffix /*.c,$(SRC_TEST_DIRS)))
 ALL_OC_FILES = $(wildcard $(addsuffix /*.oc,$(SRC_TEST_DIRS)))
 INCLUDE_FLAGS = $(addprefix -I ,$(SRC_DIRS) $(OBLIVCH))
@@ -78,6 +82,15 @@ builddirs: $(BUILD_SUBDIRS)
 # Include generated dependencies
 -include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
 
+localincs=$(filter %.h %.oh,$(filter-out /%,$(filter-out %:,$(shell cat $1))))
+c_srcofh=$(wildcard $(patsubst %.h,%.c,$1))
+oc_srcofh=$(wildcard $(patsubst %.oh,%.oc,$(patsubst %.h,%.oc,$1)))
+c_objofh=$(patsubst %.c,build/%.o,$(call c_srcofh,$1))
+oc_objofh=$(patsubst %.oc,build/%.oo,$(call oc_srcofh,$1))
+all_objofh=$(call c_objofh,$1) $(call oc_objofh,$1)
+dofobj=$(patsubst %.oo,%.od,$(patsubst %.o,%.d,$1))
+objdeps=$(call all_objofh,$(call localincs,$(call dofobj,$1)))
+
 build/%.o: %.c | builddirs
 	gcc -Wall -std=gnu99 -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
 	cpp -MM $(CFLAGS) $*.c $(INCLUDE_FLAGS) -MT $@ > build/$*.d
@@ -88,7 +101,9 @@ build/%.oo: %.oc | builddirs
 
 # Create dependencies
 # Some test/ files have only .c files, others have .c and .oc with the same name
-build/Makefile-testdeps: $(wildcard test/*.c test/*.oc bench/*.c bench/*.oc) | builddirs
+#build/Makefile-testdeps: $(wildcard test/*.c test/*.oc bench/*.c bench/*.oc) | builddirs
+# FIXME should rerun if we have new files in directory
+build/Makefile-testdeps: | builddirs
 	> $@
 	for f in `ls test/*.c` `ls bench/*.c`; do \
 	  if [ -a $${f/%.c/.oc} ]; then \
@@ -98,8 +113,23 @@ build/Makefile-testdeps: $(wildcard test/*.c test/*.oc bench/*.c bench/*.oc) | b
 
 -include build/Makefile-testdeps
 # Build test executables
-build/test/%: build/test/%.o build/util/util.o build/liboram.a
+build/test/%: build/test/%.o build/liboram.a
 	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
 
-build/bench/%: build/bench/%.o build/util/util.o build/liboram.a
+build/bench/%: build/bench/%.o build/liboram.a
 	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
+
+# Create link-time dependencies for binaries
+-include $(TEST_BINS:=.exec_d)
+
+dfsobj=$(call dfsobj_aux,$1,)
+
+define dfsobj_aux =
+$(if $(findstring $1,$2),,\
+  $(sort $1 $(foreach nxt,$(call objdeps,$1),$(call dfsobj_aux,$(nxt),$1 $2))))
+endef
+
+# Depend on .o instead of .c, so that .d gets built with it
+# Test binaries need main() in .c, not .oc
+build/%.exec_d: build/%.o
+	echo build/$*: $(call dfsobj,$^) > $@
