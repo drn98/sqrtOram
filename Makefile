@@ -86,13 +86,13 @@ builddirs: $(BUILD_SUBDIRS)
 -include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
 
 localincs=$(filter %.h %.oh,$(filter-out /%,$(filter-out %:,$(shell cat $1))))
-c_srcofh=$(wildcard $(patsubst %.h,%.c,$1))
-oc_srcofh=$(wildcard $(patsubst %.oh,%.oc,$(patsubst %.h,%.oc,$1)))
-c_objofh=$(patsubst %.c,build/%.o,$(call c_srcofh,$1))
-oc_objofh=$(patsubst %.oc,build/%.oo,$(call oc_srcofh,$1))
-all_objofh=$(call c_objofh,$1) $(call oc_objofh,$1)
+srcofh=$(wildcard $(patsubst %.oh,%.oc,$(patsubst %.h,%.c,$1) \
+                                       $(patsubst %.h,%.oc,$1)))
+objofh=$(patsubst %.c,build/%.o, \
+       $(patsubst %.oc,build/%.oo,$(call srcofh,$1)))
 dofobj=$(patsubst %.oo,%.od,$(patsubst %.o,%.d,$1))
-objdeps=$(call all_objofh,$(call localincs,$(call dofobj,$1)))
+objdeps=$(call objofh,$(filter-out oram/%,\
+	                           $(call localincs,$(call dofobj,$1))))
 
 build/%.o: %.c | builddirs
 	gcc -Wall -std=gnu99 -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
@@ -112,14 +112,21 @@ build/bench/%: build/bench/%.o build/liboram.a
 # Create link-time dependencies for binaries
 -include $(TEST_BINS:=.exec_d)
 
-dfsobj=$(call dfsobj_aux,$1,)
+dfsobj=$(sort $(foreach x,$1,$(call dfsobj_aux,$x,)))
 
 define dfsobj_aux =
 $(if $(findstring $1,$2),,\
   $(sort $1 $(foreach nxt,$(call objdeps,$1),$(call dfsobj_aux,$(nxt),$1 $2))))
 endef
 
+
 # Depend on .o instead of .c, so that .d gets built with it
 # Test binaries need main() in .c, not .oc
+# TESTME: might still break on deeply nested includes
+#   Problem is that this function looks for util.d even before
+#   util.d is generated. Makes sense to separate .d generation.
+#   Just remember to add extra checks to see that 'make clean' isn't
+#   spending time generating dependency information just to delete them.
+#   I like it if 'make clean newtarget' works as expected.
 build/%.exec_d: build/%.o
-	echo build/$*: $(call dfsobj,$^) > $@
+	echo $@ build/$*: $(call dfsobj,$^) > $@
