@@ -1,0 +1,160 @@
+#include <math.h>
+#include "oqueue.oh"
+
+struct oqueue {
+	oqueue * child;
+	OcCopy * cpy;
+	size_t layer_index;
+	size_t copymult;
+	bool dynamic_sizing;
+	obliv uint8_t head;
+	obliv uint8_t tail;
+	obliv uint32_t current_elements;
+	uint8_t push_time;
+	uint8_t pop_time;
+	void * data;
+};
+
+static void* element(OcCopy* cpy,void* arr,int x) obliv
+  { return x*cpy->eltsize+(char*)arr; }
+
+obliv bool oqueue_empty(oqueue * layer) obliv {
+	return (layer->current_elements == 0);
+}
+
+obliv bool oqueue_full (oqueue * layer) obliv {
+	if (layer->child == NULL) {
+		return (layer->tail == 6);
+	} else {
+		return (layer->tail == 6 & oqueue_full(layer->child));
+	}
+}
+
+obliv bool oqueue_push(oqueue * layer, void * input) obliv {
+	obliv bool success = false;
+	~obliv(en) {
+		if (layer->child != NULL) {
+			if (layer->push_time == 1) {
+				obliv if (layer->tail >= 5) {
+					obliv if (oqueue_push(layer->child, element(layer->cpy,layer->data,3*layer->copymult))) {
+						ocCopyN(layer->cpy,element(layer->cpy,layer->data,3*layer->copymult), element(layer->cpy,layer->data,5*layer->copymult),layer->copymult);
+						layer->tail -= 2;	
+					}
+				}
+				layer->push_time = 0;
+			} else {
+				layer->push_time ++;
+			}
+		}
+	}
+	obliv if (layer->tail < 6) {
+		for (uint8_t ii = 0; ii < 6; ii++) {
+			obliv if (ii == layer->tail) {
+				ocCopyN(layer->cpy,element(layer->cpy,layer->data,ii * layer->copymult), input, layer->copymult);
+				success = true;
+				layer->current_elements ++;
+			}	
+		}
+		layer->tail++;
+	}
+	return success;
+}
+
+obliv bool oqueue_pop(void * output, oqueue * layer) obliv {
+	obliv bool success = false;
+
+	~obliv(en) {
+		if (layer->pop_time == 0) {
+			if (layer->child == NULL) {
+				obliv if (layer->head >= 2) {
+					for (uint8_t ii = 0; ii < 4; ii ++) {
+						ocCopyN(layer->cpy,element(layer->cpy,layer->data,ii*layer->copymult), element(layer->cpy,layer->data,(ii + 2)*layer->copymult),layer->copymult);
+					}
+					layer->head -= 2;
+					layer->tail -= 2;
+				}
+			} else {
+				obliv if (layer->head >= 2) {
+					ocCopyN(layer->cpy,element(layer->cpy,layer->data,0), element(layer->cpy,layer->data,2*layer->copymult), layer->copymult);
+					layer->head -= 2;
+					obliv if(~oqueue_pop(element(layer->cpy,layer->data,1*layer->copymult), layer->child)) {
+						for (uint8_t ii = 1; ii < 4; ii ++) {
+							ocCopyN(layer->cpy,element(layer->cpy,layer->data,ii*layer->copymult), element(layer->cpy,layer->data,(ii + 2)*layer->copymult),layer->copymult);
+						}
+						layer->tail -= 2;
+					}
+				}
+			}
+			layer->pop_time = 1;
+		} else {
+			layer->pop_time --;
+		}
+	}
+
+	obliv if (layer->head < 3 & layer->head != layer->tail) {
+		for (uint8_t ii = 0; ii < 3; ii++) {
+			obliv if (ii == layer->head) {
+				ocCopyN(layer->cpy,output,element(layer->cpy,layer->data,ii*layer->copymult),layer->copymult);
+				success = true;
+				layer->current_elements --;
+			}
+		}
+		layer->head++;
+	}
+	return success;
+}
+
+oqueue * oqueue_new_static(OcCopy * cpy, size_t n) {
+	size_t queue_size = 0;
+	size_t layer_index = 0;
+	oqueue * result;
+	oqueue * this_layer = NULL;
+	oqueue * last_layer = NULL;
+
+	while (queue_size < n) {
+		this_layer = malloc(sizeof(oqueue));
+		this_layer->layer_index = layer_index;
+		this_layer->head = 0;
+		this_layer->tail = 0;
+		this_layer->current_elements = 0;
+		this_layer->push_time = 0;
+		this_layer->pop_time = 0;
+		this_layer->dynamic_sizing = false;
+		this_layer->child = NULL;
+
+		this_layer->copymult = pow(2, layer_index);
+		this_layer->cpy = cpy;
+		this_layer->data = calloc(1, this_layer->cpy->eltsize * this_layer->copymult * 6);
+
+		if (last_layer == NULL) {
+			result = this_layer;
+		} else {
+			last_layer->child = this_layer;
+		}
+		last_layer = this_layer;
+
+		queue_size += 3 * pow(2, layer_index);
+		layer_index++;
+	}
+
+	return result;
+}
+
+//TODO make this work in O(N) instead of O(NlogN)
+oqueue * oqueue_static_from_array(OcCopy * cpy, size_t n, void * src) {
+	oqueue * result = oqueue_new_static(cpy, n);
+
+	for (size_t ii = 0; ii < n; ii++) {
+		oqueue_push(result, element(cpy, src, ii));
+	}
+
+	return result;
+}
+
+void oqueue_free(oqueue * layer) {
+	if (layer->child != NULL) {
+		oqueue_free(layer->child);
+	}
+	free(layer->data);
+	free(layer);
+}
