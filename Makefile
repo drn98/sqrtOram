@@ -83,7 +83,9 @@ $(BUILD_SUBDIRS):
 builddirs: $(BUILD_SUBDIRS)
 
 # Include generated dependencies
--include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
+ifneq (clean,$(MAKECMDGOALS))
+  -include $(addprefix build/,$(ALL_C_FILES:.c=.d) $(ALL_OC_FILES:.oc=.od))
+endif
 
 localincs=$(filter %.h %.oh,$(filter-out /%,$(filter-out %:,$(shell cat $1))))
 srcofh=$(wildcard $(patsubst %.oh,%.oc,$(patsubst %.h,%.c,$1) \
@@ -94,13 +96,17 @@ dofobj=$(patsubst %.oo,%.od,$(patsubst %.o,%.d,$1))
 objdeps=$(call objofh,$(filter-out oram/%,\
 	                           $(call localincs,$(call dofobj,$1))))
 
-build/%.o: %.c | builddirs
-	gcc -Wall -std=gnu99 -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
-	cpp -MM $(CFLAGS) $*.c $(INCLUDE_FLAGS) -MT $@ > build/$*.d
+build/%.d: %.c | builddirs
+	cpp -MM $(CFLAGS) $*.c $(INCLUDE_FLAGS) -MT $*.o > $@
 
-build/%.oo: %.oc | builddirs
+build/%.o: %.c build/%.d
+	gcc -Wall -std=gnu99 -c $(CFLAGS) $*.c -o $@ $(INCLUDE_FLAGS)
+
+build/%.od: %.oc | builddirs
+	cpp -MM $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -MT $*.oo > $@
+
+build/%.oo: %.oc build/%.od
 	$(OBLIVCC) -c $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -o $@
-	cpp -MM $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -MT $@ > build/$*.od
 
 # Build test executables
 build/test/%: build/test/%.o build/liboram.a
@@ -110,7 +116,9 @@ build/bench/%: build/bench/%.o build/liboram.a
 	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
 
 # Create link-time dependencies for binaries
--include $(TEST_BINS:=.exec_d)
+ifneq (clean,$(MAKECMDGOALS))
+  -include $(TEST_BINS:=.exec_d)
+endif
 
 dfsobj=$(sort $(foreach x,$1,$(call dfsobj_aux,$x,)))
 
@@ -122,11 +130,5 @@ endef
 
 # Depend on .o instead of .c, so that .d gets built with it
 # Test binaries need main() in .c, not .oc
-# TESTME: might still break on deeply nested includes
-#   Problem is that this function looks for util.d even before
-#   util.d is generated. Makes sense to separate .d generation.
-#   Just remember to add extra checks to see that 'make clean' isn't
-#   spending time generating dependency information just to delete them.
-#   I like it if 'make clean newtarget' works as expected.
 build/%.exec_d: build/%.o
 	echo $@ build/$*: $(call dfsobj,$^) > $@
