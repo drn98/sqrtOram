@@ -26,8 +26,11 @@
 # Use the test/ folder. Right now, there is no makefile target that makes
 # builds all test executable (i.e. no automated regression testing). We really
 # need one. But till then, any file named test/foo.c will allow you to do
-# 'make build/test/foo' which will be linked to liboram. If there is a matching
-# test/foo.oc file as well, that will also be linked in to the test file.
+# 'make build/test/foo' which will be linked to liboram. This makefile will
+# recursively follow any included header files, find their matching .c or .oc
+# source files, and link those in as well. So try not to include files you 
+# don't actually use. The bench/ folder works the same way, but used mostly
+# for measurement code.
 #
 #
 # Adding new test/benchmark helpers
@@ -99,19 +102,6 @@ build/%.oo: %.oc | builddirs
 	$(OBLIVCC) -c $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -o $@
 	cpp -MM $(CFLAGS) $*.oc $(INCLUDE_FLAGS) -MT $@ > build/$*.od
 
-# Create dependencies
-# Some test/ files have only .c files, others have .c and .oc with the same name
-#build/Makefile-testdeps: $(wildcard test/*.c test/*.oc bench/*.c bench/*.oc) | builddirs
-# FIXME should rerun if we have new files in directory
-build/Makefile-testdeps: | builddirs
-	> $@
-	for f in `ls test/*.c` `ls bench/*.c`; do \
-	  if [ -a $${f/%.c/.oc} ]; then \
-	    echo build/$${f/%.c/}: build/$${f/%.c/.oo} >> $@; \
-	  fi; \
-	done
-
--include build/Makefile-testdeps
 # Build test executables
 build/test/%: build/test/%.o build/liboram.a
 	$(OBLIVCC) -o $@ $(filter %.o %.oo,$^) -loram -Lbuild -lm
