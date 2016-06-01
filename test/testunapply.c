@@ -14,7 +14,7 @@ void showUsage(const char* exec)
 int main(int argc,char *argv[])
 {
   ProtocolDesc pd;
-  int i,me,n;
+  int n;
   if(argc<4) showUsage(argv[0]);
   else sscanf(argv[3],"%d",&n);
   connectOrDie(&pd,argv[1],argv[2]);
