@@ -123,14 +123,15 @@ ifneq (clean,$(MAKECMDGOALS))
 endif
 
 dfsobj=$(sort $(foreach x,$1,$(call dfsobj_aux,$x,)))
+in_list=$(filter $1,$2)
 
-define dfsobj_aux =
-$(if $(findstring $1,$2),,\
+dfsobj_aux = \
+  $(if $(call in_list,$1,$2),,\
   $(sort $1 $(foreach nxt,$(call objdeps,$1),$(call dfsobj_aux,$(nxt),$1 $2))))
-endef
 
 
 # Depend on .o instead of .c, so that .d gets built with it
 # Test binaries need main() in .c, not .oc
 build/%.exec_d: build/%.o
+	@echo Starting with build/$*.o
 	echo $@ build/$*: $(call dfsobj,$^) > $@

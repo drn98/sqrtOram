@@ -1,6 +1,7 @@
 #include <obliv.oh>
 #include "oqueue.oh"
 #include "test_oqueue.h"
+#include <stdio.h>
 
 
 #define STATUS_SUCCESS "\e[32m[SUCCESS]\e[0m"
