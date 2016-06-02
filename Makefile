@@ -133,5 +133,4 @@ dfsobj_aux = \
 # Depend on .o instead of .c, so that .d gets built with it
 # Test binaries need main() in .c, not .oc
 build/%.exec_d: build/%.o
-	@echo Starting with build/$*.o
 	echo $@ build/$*: $(call dfsobj,$^) > $@
