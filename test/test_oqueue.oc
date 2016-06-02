@@ -18,7 +18,7 @@ void testMain(void*varg) {
 		bool success = true;
 
 		for (int ii = 0; ii <testEls; ii ++) {
-			obliv int input = feedOblivInt(ii, ii % 2);
+			obliv int input = feedOblivInt(ii, ii % 2 + 1);
 			obliv bool pushed = oqueue_push(testQueue, &input);
 			bool tempBool;
 			revealOblivBool(&tempBool, pushed, 0);
@@ -50,7 +50,7 @@ void testMain(void*varg) {
 		bool success = true;
 
 		for (int ii = 0; ii <testEls*2; ii ++) {
-			obliv int input = feedOblivInt(ii, ii % 2);
+			obliv int input = feedOblivInt(ii, ii % 2 + 1);
 			obliv bool pushed = oqueue_push(testQueue, &input);
 			bool tempBool;
 			revealOblivBool(&tempBool, pushed, 0);
@@ -100,9 +100,7 @@ void testMain(void*varg) {
 		uint32_t srnd;
 
 		for (int ii = 0; ii < testOps; ii ++) {
-			// for some reason, ocBroadcast doesn't work.
-			rnd = feedOblivInt(rand(), ii % 2);
-			revealOblivBool(&srnd, rnd, 0);
+      srnd = ocBroadcastInt(rand(), ii % 2 + 1);
 
 			if (testBufferHead == testBufferTail) {
 				// queue is empty; push				
@@ -112,7 +110,7 @@ void testMain(void*varg) {
 				} else {
 					testBufferTail = 0;
 				}
-				otemp = feedOblivInt(srnd, ii % 2);
+				otemp = feedOblivInt(srnd, ii % 2 + 1);
 				opSuccess = oqueue_push(testQueue, &otemp);
 				revealOblivBool(&tempBool, opSuccess, 0);
 				if (!tempBool) fprintf(stderr,"FAILURE at %d:1\n", ii);
@@ -140,7 +138,7 @@ void testMain(void*varg) {
 						} else {
 							testBufferTail = 0;
 						}
-						otemp = feedOblivInt(srnd, ii % 2);
+						otemp = feedOblivInt(srnd, ii % 2 + 1);
 						opSuccess = oqueue_push(testQueue, &otemp);
 						revealOblivBool(&tempBool, opSuccess, 0);
 						if (!tempBool) fprintf(stderr,"FAILURE at %d:3\n", ii);
@@ -190,9 +188,7 @@ void testMain(void*varg) {
 		uint32_t srnd;
 
 		for (int ii = 0; ii < testEls; ii ++) {
-			// for some reason, ocBroadcast doesn't work.
-			rnd =feedOblivInt(rand(), ii % 2);
-			revealOblivBool(&srnd, rnd, 0);
+      srnd = ocBroadcastInt(rand(), ii % 2 + 1);
 
 			testBuffer[testBufferTail] = srnd;
 			if (testBufferTail < 200) {
@@ -200,16 +196,14 @@ void testMain(void*varg) {
 			} else {
 				testBufferTail = 0;
 			}
-			otemp = feedOblivInt(srnd, ii % 2);
+			otemp = feedOblivInt(srnd, ii % 2 + 1);
 			opSuccess = oqueue_push(testQueue, &otemp);
 			revealOblivBool(&tempBool, opSuccess, 0);
 			success &= tempBool;
 		}
 
 		for (int ii = 0; ii < testOps; ii ++) {
-			// for some reason, ocBroadcast doesn't work.
-			rnd =feedOblivInt(rand(), ii % 2);
-			revealOblivBool(&srnd, rnd, 0);
+      srnd = ocBroadcastInt(rand(), ii % 2 + 1);
 
 			if (testBufferHead == testBufferTail) {
 				// queue is empty; push				
@@ -219,7 +213,7 @@ void testMain(void*varg) {
 				} else {
 					testBufferTail = 0;
 				}
-				otemp = feedOblivInt(srnd, ii % 2);
+				otemp = feedOblivInt(srnd, ii % 2 + 1);
 				opSuccess = oqueue_push(testQueue, &otemp);
 				revealOblivBool(&tempBool, opSuccess, 0);
 				success &= tempBool;
@@ -245,7 +239,7 @@ void testMain(void*varg) {
 						} else {
 							testBufferTail = 0;
 						}
-						otemp = feedOblivInt(srnd, ii % 2);
+						otemp = feedOblivInt(srnd, ii % 2 + 1);
 						opSuccess = oqueue_push(testQueue, &otemp);
 						revealOblivBool(&tempBool, opSuccess, 0);
 						success &= tempBool;
@@ -285,7 +279,7 @@ void testMain(void*varg) {
 		success &= (tempBool == true);
 
 		for (int ii = 0; ii <testEls; ii ++) {
-			obliv int input = feedOblivInt(ii, ii % 2);
+			obliv int input = feedOblivInt(ii, ii % 2 + 1);
 			oqueue_push(testQueue, &input);
 			testQueueFullness = oqueue_empty(testQueue);
 			revealOblivBool(&tempBool, testQueueFullness, 0);
@@ -326,7 +320,7 @@ void testMain(void*varg) {
 			testQueueFullness = oqueue_full(testQueue);
 			revealOblivBool(&tempBool, testQueueFullness, 0);
 			success &= (tempBool == false);
-			obliv int input = feedOblivInt(ii, ii % 2);
+			obliv int input = feedOblivInt(ii, ii % 2 + 1);
 			oqueue_push(testQueue, &input);
 		}
 
