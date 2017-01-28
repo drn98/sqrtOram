@@ -19,7 +19,7 @@ void testOramAccess(void* vargs)
   if(args->type==oramTypeSqrt) ram=(OcOram*)ocSqrtOramNew(&ocCopyInt,content,n);
   else if(args->type==oramTypeCkt) 
   { ram=(OcOram*)ckt_initialize(n,&ocCopyInt);
-    for(int i=0;i<size;++i) ocOramWrite(ram,i,content+i);
+    for(int i=0;i<n;++i) ocOramWrite(ram,i,content+i);
   }
   else ram=(OcOram*)ocLinearOramNew(&ocCopyInt,content,n);
   args->outputs = malloc(size*sizeof(int));
