@@ -67,8 +67,6 @@ static void applyNetworkHalf(OcCopy* cpy,void* data,
 {
   int l,i;
   size_t elt = cpy->eltsize;
-  char *opt0 = calloc((n/2)*elt,1);
-  char *opt1 = calloc((n/2)*elt,1);
   int me = ocCurrentParty();
   ProtocolDesc* pd = ocCurrentProto();
   YaoEHalfSwapper sw;
@@ -81,7 +79,6 @@ static void applyNetworkHalf(OcCopy* cpy,void* data,
     else
       yaoEHalfSwapGate(pd,aa,bb,elt/sizeof(obliv bool),&sw);
   }
-  free(opt0); free(opt1);
 }
 
 void ocPermNetworkCleanup(OcPermNetwork* w)
