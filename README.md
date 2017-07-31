@@ -22,9 +22,9 @@ the following actions:
   1. Add this to your `.bashrc`, since it is used by the Makefile. This should
 allow you to invoke the compiler as `$OBLIV_CPATH/bin/oblivcc`.
 
-    ```bash
-    export OBLIVC_PATH=/path/to/oblivc
-    ```
+```bash
+export OBLIVC_PATH=/path/to/oblivc
+```
 
   2. Clone the repository: `git clone https://github.com/samee/sqrtOram.git`
   3. Perform `make`
@@ -32,8 +32,10 @@ allow you to invoke the compiler as `$OBLIV_CPATH/bin/oblivcc`.
 This will build a `build/liboram.a` file in the repository. Now you can use it
 in any project as follows:
 
-    OBLIVCC=$OBLIVC_PATH/bin/oblivcc
-    LIBORAM=path/to/liboram/repo
-    $OBLIVCC yourproject.oc -I $LIBORAM/oram -L $LIBORAM/build -loram
+```bash
+OBLIVCC=$OBLIVC_PATH/bin/oblivcc
+LIBORAM=path/to/liboram/repo
+$OBLIVCC yourproject.oc -I $LIBORAM/oram -L $LIBORAM/build -loram
+```
 
 As always, questions always welcome at sza4uq@virginia.edu
