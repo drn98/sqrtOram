@@ -55,10 +55,10 @@ CircuitOram* ckt_initialize(int N, OcCopy* cpy) {
 void ckt_release(OcOram* super) {
 	CircuitOram* oram = CAST(super);
 	for(int i = 0; i < oram->num_recursion; ++i)
-        {	nro_release(oram->orams[i]);
-		free(&oram->poscpy[i]);
-	}
+		nro_release(oram->orams[i]);
+
 	ocOramRelease(oram->base);
+        free(oram->poscpy);
 	free(oram->orams);
 	releaseBCipherRandomGen(oram->gen);
 	free(oram->rand_pool);
