@@ -20,7 +20,7 @@ from this [repository](https://github.com/samee/obliv-c). After that, perform
 the following actions:
 
   1. Add this to your `.bashrc`, since it is used by the Makefile. This should
-allow you to invoke the compiler as `$OBLIV_CPATH/bin/oblivcc`.
+allow you to invoke the compiler as `$OBLIVC_PATH/bin/oblivcc`.
 
 ```bash
 export OBLIVC_PATH=/path/to/oblivc
