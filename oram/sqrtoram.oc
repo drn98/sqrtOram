@@ -1,15 +1,63 @@
 // Implements a silly 4-block ORAM that improves over linear scan by at most
 // 10%. Used only as a stepping-stone, till we implement a full-blown n-block
 // one, which has more moving parts.
+
+#define MAX_ITER 12
+// Adjust in favour of performance or accuracy
+
 #include<assert.h>
 #include<stdlib.h>
-#include<math.h>
+// #include<math.h>
 #include"waksman.h"
 #include<bcrandom.h>
 #include<obliv.oh>
 #include"decoder.oh"
 #include"sqrtoram.oh"
 #include"shuffle.oh"
+
+double ceil(double x)
+{
+	double y = 0;
+
+	if (x > 0)
+	{
+		while (x > 1)
+		{
+			x -= 1.0;
+			y += 1.0;
+		}
+	}
+    if (x == +0 || x == -0)
+    {
+        return 0.0;
+    }
+    if (x < 0)
+    {
+        while (x < 0)
+        {
+            x -= 1.0;
+            y += 1.0;
+        }
+    }
+	return x;
+}
+
+double sqrt(double a)
+{
+    double x, y;
+    register unsigned int iter;
+
+    x = a;
+    y = 1;
+
+    for (iter = 0; iter < MAX_ITER; iter++)
+    {
+        x = (x + y)/2;
+        y = a/x;
+    }
+
+    return a;
+}
 
 /* Positionmaps export the following interface:
    They store logical->physical index mapping, as well as a "used" flag
